@@ -1,7 +1,7 @@
 {
-  "name": "Pomodoro",
-  "short_name": "Pomodoro",
-  "description": "Pomodoro y agenda de tareas, tranquilo y sin distracciones.",
+  "name": "TideTask",
+  "short_name": "TideTask",
+  "description": "Tareas, rutinas y enfoque al ritmo de la marea: tranquilo y sin distracciones.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

@@ -1,4 +1,4 @@
-/* Agenda: tareas tipo Google Tasks / Microsoft To Do dentro del Pomodoro.
+/* Agenda: tareas tipo Google Tasks / Microsoft To Do dentro de TideTask.
  * - `L` es la lógica pura (fechas, rutinas, filtros, fusión): se prueba en Node sin navegador.
  * - `Agenda` es la interfaz; se crea al llamar a Agenda.iniciar(). Datos en localStorage y, si se conecta,
  *   sincronizados con Drive mediante Nube (fusión por elemento, gana el cambio más reciente). */

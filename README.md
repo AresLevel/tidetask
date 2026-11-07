@@ -1,6 +1,6 @@
-# Pomodoro
+# TideTask
 
-Temporizador Pomodoro minimalista con fondos de acuarela, sonidos ambientales y una agenda de tareas.
+TideTask: tareas, rutinas y un temporizador de enfoque (técnica Pomodoro) con fondos de acuarela, sonidos ambientales y una agenda tranquila.
 
 **Demo:** https://areslevel.github.io/pomodoro/
 
