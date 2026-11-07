@@ -717,8 +717,11 @@
   const guardarCerrados = () => { try { localStorage.setItem('agenda.gcerrados', JSON.stringify([...cerrados])); } catch { /* sin espacio */ } };
   function eliminarGrupo(g) {
     const ahora = Date.now();
-    E.listas.filter(l => l.grupo === g.id).forEach(l => { l.grupo = ''; l.t = ahora; });
+    const ids = E.listas.filter(l => l.grupo === g.id).map(l => l.id);   // se elimina el grupo con todas sus listas; sus tareas pasan a Pendientes
+    E.tareas.filter(t => ids.includes(t.lista)).forEach(t => { t.lista = 'inbox'; t.t = ahora; });
+    E.listas = E.listas.filter(l => !ids.includes(l.id)); ids.forEach(id => { E.borrados[id] = ahora; });
     E.grupos = E.grupos.filter(x => x.id !== g.id); E.borrados[g.id] = ahora; cerrados.delete(g.id);
+    if (ui.vista.tipo === 'lista' && ids.includes(ui.vista.id)) { ui.vista = { tipo: 'todas' }; ui.personalizar = false; if (refs.caja) refs.caja.classList.add('en-menu'); }
     guardar(); todo();
   }
   function nuevoGrupo() {
@@ -977,7 +980,7 @@
     cerrarMenuCtx();
     const eliminar = h('button', { class: 'ag-ctx-op peligro', role: 'menuitem', onclick: e => {
       e.stopPropagation();
-      if (!eliminar.dataset.armado) { eliminar.dataset.armado = '1'; eliminar.lastChild.textContent = '¿Seguro? Sus listas quedan sueltas'; return; }
+      if (!eliminar.dataset.armado) { eliminar.dataset.armado = '1'; const n = E.listas.filter(l => l.grupo === g.id).length; eliminar.lastChild.textContent = n ? `¿Seguro? Se eliminan sus ${n} ${n === 1 ? 'lista' : 'listas'} (las tareas pasan a Pendientes)` : '¿Seguro? El grupo está vacío'; return; }
       cerrarMenuCtx(); eliminarGrupo(g);
     } }, ico('i_limpieza'), h('span', null, 'Eliminar grupo'));
     const m = h('div', { class: 'ag-ctx', id: 'agMenuCtx', role: 'menu' },
