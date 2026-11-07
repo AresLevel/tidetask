@@ -203,7 +203,42 @@
   function guardarLocal() { try { localStorage.setItem(CLAVE, JSON.stringify(E)); } catch { /* sin espacio */ } }
   const tarea = id => E.tareas.find(t => t.id === id) || null;
   const lista = id => E.listas.find(l => l.id === id) || E.listas[0];
-  function guardar() { guardarLocal(); programarSync(); }
+  function guardar() { guardarLocal(); programarSync(); refrescarHoy(); }
+
+  // ---------------------------------------------------------------- tarjeta «Hoy» junto al timer
+  let hoyAbierto = (() => { const v = localStorage.getItem('agenda.hoy'); return v === null ? innerWidth >= 1100 : v === '1'; })();
+  function alternarHoy() { hoyAbierto = !hoyAbierto; localStorage.setItem('agenda.hoy', hoyAbierto ? '1' : '0'); refrescarHoy(); }
+  function agregarHoy(texto) {
+    const p = L.parsear(texto); if (!p.titulo) return;
+    const t = crear({ titulo: p.titulo, prio: p.prio, etiquetas: p.etiquetas, fecha: p.fecha || L.hoy() });
+    if (!activa) fijarActiva(t.id);
+  }
+  function refrescarHoy() {
+    const c = refs.hoy; if (!c) return;
+    const hoy = L.hoy(), xs = L.filtrar(E, { tipo: 'hoy' }, hoy, '', false), MAX = 6;
+    const a = document.activeElement, tecleando = !!(a && c.contains(a) && a.classList.contains('hy-nueva')), valor = tecleando ? a.value : '';
+    const alternarActiva = id => fijarActiva(activa === id ? null : id);
+    const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: 'Añadir a hoy…', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
+      onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { const v = e.target.value; e.target.value = ''; agregarHoy(v); } } });
+    entrada.value = valor;
+    const filas = xs.slice(0, MAX).map(t => h('div', { class: 'hy-fila' + (activa === t.id ? ' activa' : '') + (t.fecha < hoy ? ' vencida' : ''), role: 'button', tabIndex: 0, 'aria-pressed': String(activa === t.id),
+        onclick: () => alternarActiva(t.id),
+        onkeydown: e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); alternarActiva(t.id); } } },
+      h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Completar ' + (t.titulo || 'tarea'), onclick: e => { e.stopPropagation(); alternarHecha(t.id); } }),
+      h('span', { class: 'hy-t' }, t.titulo || '(sin título)'),
+      (t.est > 0 || t.pomos > 0) && h('span', { class: 'hy-p' }, `${t.pomos}${t.est ? '/' + t.est : ''}`)));
+    c.textContent = '';
+    c.classList.toggle('plegado', !hoyAbierto);
+    c.append(
+      h('div', { class: 'hy-cab' },
+        h('button', { class: 'hy-tit', 'aria-expanded': String(hoyAbierto), onclick: alternarHoy }, 'Hoy', xs.length > 0 && h('em', null, xs.length)),
+        h('button', { class: 'hy-ver', onclick: () => Agenda.abrirHoy() }, 'Agenda')),
+      h('div', { class: 'hy-cuerpo' },
+        filas.length ? h('div', { class: 'hy-lista' }, filas) : h('p', { class: 'hy-vacio' }, 'Nada para hoy. Escribe abajo en qué vas a enfocarte.'),
+        xs.length > MAX && h('button', { class: 'hy-mas', onclick: () => Agenda.abrirHoy() }, `Ver las ${xs.length - MAX} restantes`),
+        entrada));
+    if (tecleando) entrada.focus();
+  }
   function editar(id, cambios, refrescar = 'lista') {
     const t = tarea(id); if (!t) return;
     Object.assign(t, cambios, { t: Date.now() });
@@ -231,6 +266,7 @@
     activa = id; localStorage.setItem('agenda.activa', id || '');
     if (alCambiarActiva) alCambiarActiva(Agenda.activaTitulo());
     if (refs.centro) listaUI();
+    refrescarHoy();
   }
   function enfocar(id) {
     fijarActiva(id); cerrar();
@@ -246,7 +282,7 @@
       const fus = await Nube.sincronizar(E, L.fusionar, L.canon);
       // Lo editado mientras subía gana por su sello de tiempo; solo se reemplaza E si de verdad hay algo nuevo
       const nuevo = L.fusionar(E, fus);
-      if (L.canon(nuevo) !== L.canon(E)) { E = nuevo; guardarLocal(); if (ui.sel && !tarea(ui.sel)) ui.sel = null; if (abierta) todo(); }
+      if (L.canon(nuevo) !== L.canon(E)) { E = nuevo; guardarLocal(); if (ui.sel && !tarea(ui.sel)) ui.sel = null; refrescarHoy(); if (abierta) todo(); }
       if (L.canon(nuevo) !== L.canon(fus)) programarSync();
     } catch { /* el estado ya quedó reflejado en Nube.estado */ }
   }
@@ -515,10 +551,11 @@
     iniciar(opciones = {}) {
       alCambiarActiva = opciones.alCambiarActiva || null;
       cargar(); construir();
+      refs.hoy = document.getElementById('hoy'); refrescarHoy();
       if (alCambiarActiva) alCambiarActiva(Agenda.activaTitulo());
       addEventListener('keydown', e => { if (abierta && e.key === 'Escape' && !e.defaultPrevented) { if (ui.sel) seleccionar(ui.sel); else cerrar(); } });
       addEventListener('online', () => sincronizar(false));
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) sincronizar(false); });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) { refrescarHoy(); sincronizar(false); } });
       setInterval(() => sincronizar(false), 90000);
       sincronizar(false);
     },
@@ -534,6 +571,8 @@
       const t = crear({ titulo: p.titulo, prio: p.prio, etiquetas: p.etiquetas, fecha: p.fecha || L.hoy() });
       fijarActiva(t.id);
     },
+    /** Marca como hecha la tarea activa (si es rutina, pasa a su próxima fecha) y la deja de usar como foco. */
+    completarActiva() { const t = tarea(activa); if (!t || t.hecha) return; const id = t.id; alternarHecha(id); if (activa === id) fijarActiva(null); },
     activaTitulo() { const t = tarea(activa); return t && !t.hecha ? t.titulo : ''; },
     /** Suma un pomodoro completado a la tarea activa. */
     sumarPomodoro() { const t = tarea(activa); if (t && !t.hecha) { t.pomos = (t.pomos || 0) + 1; t.t = Date.now(); guardar(); if (abierta) { listaUI(); detalle(); } } },

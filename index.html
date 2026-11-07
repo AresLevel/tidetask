@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pomodoro</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=2">
+<link rel="stylesheet" href="agenda.css?v=3">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -257,7 +257,10 @@
     <button class="tarea-activa" id="tareaActiva" hidden></button>
     <input class="tarea-input" id="enfoqueInput" type="text" placeholder="¿En qué vas a enfocarte?" autocomplete="off" maxlength="120" aria-label="¿En qué vas a enfocarte?">
   </div>
+  <div class="cierre" id="cierre" role="status" hidden></div>
 </main>
+
+<aside class="hoy" id="hoy" aria-label="Tareas de hoy"></aside>
 
 <nav class="selector" id="selector" aria-label="Fondos"></nav>
 
@@ -346,8 +349,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=2"></script>
-<script src="agenda.js?v=2"></script>
+<script src="nube.js?v=3"></script>
+<script src="agenda.js?v=3"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -600,7 +603,7 @@
     } else {
       audio();   // activa el audio con este gesto del usuario
       fin = Date.now() + restante; corriendo = true; btnIniciar.textContent = 'Pausar';
-      if (modo === 'enfoque') { musica(true); ambiente(true); }
+      if (modo === 'enfoque') { ocultarCierre(); musica(true); ambiente(true); }
     }
     guardarSesion(); pintar();
   }
@@ -620,8 +623,18 @@
     else { pomodoro = modo === 'largo' ? 1 : pomodoro + 1; sig = 'enfoque'; }
     cambiarModo(sig);
     if (natural && !ausente && (sig === 'enfoque' ? cfg.autoEnfoque : cfg.autoDescanso)) alternar();
-    // Terminó el descanso y no arranca solo: lo natural es elegir la siguiente tarea
-    else if (natural && !ausente && sig === 'enfoque' && Agenda.hayHoy()) Agenda.abrirHoy();
+    // Al cerrar un pomodoro con una tarea de por medio, se pregunta si ya quedó lista
+    if (natural && eraEnfoque && Agenda.activaTitulo()) mostrarCierre();
+  }
+  let temporizadorCierre = 0;
+  function ocultarCierre() { clearTimeout(temporizadorCierre); $('cierre').hidden = true; }
+  function mostrarCierre() {
+    const el = $('cierre'), txt = document.createElement('span'), si = document.createElement('button'), no = document.createElement('button');
+    txt.textContent = `¿Terminaste «${Agenda.activaTitulo()}»?`;
+    si.className = 'si'; si.textContent = 'Sí, hecha'; si.onclick = () => { Agenda.completarActiva(); ocultarCierre(); };
+    no.textContent = 'Seguir con ella'; no.onclick = ocultarCierre;
+    el.textContent = ''; el.append(txt, si, no); el.hidden = false;
+    clearTimeout(temporizadorCierre); temporizadorCierre = setTimeout(ocultarCierre, 90000);
   }
   setInterval(() => {            // calcula contra la hora real, no suma segundos
     if (!corriendo) return;
@@ -719,6 +732,7 @@
   Agenda.iniciar({ alCambiarActiva: txt => {
     const b = $('tareaActiva'), i = $('enfoqueInput');
     b.textContent = txt; b.hidden = !txt; i.hidden = !!txt;
+    ocultarCierre();
   } });
   $('enfoqueInput').addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !e.target.value.trim()) return;
@@ -727,8 +741,7 @@
   pintarAjustes(); pintar();
   if (terminoFuera) { terminar(true, true); aviso('El tiempo terminó mientras no estabas.'); }
   else if (corriendo) aviso('Sesión recuperada. El tiempo sigue corriendo.');
-  // ¿Qué mostrar al abrir? Un enfoque a medias → el timer; libre y con tareas para hoy → Hoy; libre y sin tareas → timer con su campo
-  else if (modo === 'enfoque' && restante === dur('enfoque') && Agenda.hayHoy()) Agenda.abrirHoy();
+  // Al abrir siempre se ve el timer; las tareas de hoy están en la tarjeta de la izquierda y la agenda completa, a un toque
 </script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
