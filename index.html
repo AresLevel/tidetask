@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="img/app/icono-192.png">
-<link rel="stylesheet" href="agenda.css?v=57">
+<link rel="stylesheet" href="agenda.css?v=58">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -297,7 +297,7 @@
     .tabs button.on span { font-weight: 600; }
   }
 </style>
-<link rel="stylesheet" href="acuarela.css?v=57">
+<link rel="stylesheet" href="acuarela.css?v=58">
 </head>
 <body data-vista="agenda">
 
@@ -470,8 +470,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=57"></script>
-<script src="agenda.js?v=57"></script>
+<script src="nube.js?v=58"></script>
+<script src="agenda.js?v=58"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -528,6 +528,10 @@
     { id: 'morado',   nombre: 'Lavanda de noche', tono: 'claro',  texto: '#f8f5ff', acento: '#e6d4fa', acentoTexto: '#2a1658', ambiente: 'grillos' },
     { id: 'azul',     nombre: 'Velero',           tono: 'claro',  texto: '#f8f9fb', acento: '#d4e8ff', acentoTexto: '#0f2a5c', ambiente: 'olas' },
     { id: 'verde',    nombre: 'Bosque',           tono: 'oscuro', texto: '#143a28', acento: '#143a28', acentoTexto: '#e3f5d2', ambiente: 'lluvia' },
+    { id: 'turquesa', nombre: 'Laguna',           tono: 'oscuro', texto: '#0b3b44', acento: '#0b3b44', acentoTexto: '#e0fffb', ambiente: 'olas' },
+    { id: 'rojo',     nombre: 'Otoño',            tono: 'oscuro', texto: '#4a1408', acento: '#4a1408', acentoTexto: '#ffe9d0', ambiente: 'viento' },
+    { id: 'aurora',   nombre: 'Aurora',           tono: 'claro',  texto: '#f2fffa', acento: '#bff7e2', acentoTexto: '#06231f', ambiente: 'viento' },
+    { id: 'niebla',   nombre: 'Niebla',           tono: 'oscuro', texto: '#1f2c3c', acento: '#1f2c3c', acentoTexto: '#eef3f8', ambiente: 'lluvia' },
   ];
   const COLOR_ICONO = { enfoque: '#e8553d', corto: '#4fb286', largo: '#4f8fe0' };
   const LIM = { enfoque: [1, 180], corto: [1, 60], largo: [1, 90], ciclos: [2, 10] };

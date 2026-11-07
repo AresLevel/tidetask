@@ -324,9 +324,10 @@
     return h('span', { class: 'ag-ins', style: o.color ? `--c:${o.color}` : '' }, o.icono && ICO['i_' + o.icono] ? ico('i_' + o.icono) : null);
   }
   // Paisajes (acuarelas de img/): cada lista tiene el suyo; por defecto sale del color de la lista.
-  const PAISAJES = [['amarillo', 'Girasoles'], ['naranja', 'Globos'], ['rosado', 'Cerezo en flor'], ['morado', 'Lavanda de noche'], ['azul', 'Velero'], ['verde', 'Bosque']];
-  const PAISAJE_COLOR = { '#4f8fe0': 'azul', '#3aa6b9': 'azul', '#6c7ae0': 'morado', '#4fb286': 'verde', '#9bbf4a': 'verde', '#f0a93b': 'amarillo', '#e8853d': 'naranja',
-    '#e8553d': 'naranja', '#e06fa4': 'rosado', '#9b6ad8': 'morado', '#8a6a4f': 'naranja', '#7b8794': 'azul' };
+  const PAISAJES = [['amarillo', 'Girasoles'], ['naranja', 'Globos'], ['rosado', 'Cerezo en flor'], ['morado', 'Lavanda de noche'], ['azul', 'Velero'], ['verde', 'Bosque'],
+    ['turquesa', 'Laguna'], ['rojo', 'Otoño'], ['aurora', 'Aurora'], ['niebla', 'Niebla']];
+  const PAISAJE_COLOR = { '#4f8fe0': 'azul', '#3aa6b9': 'turquesa', '#6c7ae0': 'morado', '#4fb286': 'verde', '#9bbf4a': 'verde', '#f0a93b': 'amarillo', '#e8853d': 'naranja',
+    '#e8553d': 'rojo', '#e06fa4': 'rosado', '#9b6ad8': 'morado', '#8a6a4f': 'naranja', '#7b8794': 'niebla' };
   const paisajeDe = l => (l.fondo && PAISAJES.some(x => x[0] === l.fondo)) ? l.fondo : (PAISAJE_COLOR[(l.color || '').toLowerCase()] || 'azul');
   function selectorPaisajes(l, alElegir) {
     return h('div', { class: 'ag-paisajes' },

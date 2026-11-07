@@ -8,7 +8,8 @@ W, H = 1920, 1080
 VERT = "--v" in sys.argv
 CW, CH = (1080, 2160) if VERT else (W, H)     # tamaño del lienzo visible
 DY = CH - H if VERT else 0                    # cuánto cielo se añade por encima
-X0 = {"amarillo": 840, "azul": 380, "rosado": 100, "verde": 420, "morado": 840, "naranja": 480}
+X0 = {"amarillo": 840, "azul": 380, "rosado": 100, "verde": 420, "morado": 840, "naranja": 480,
+      "turquesa": 380, "rojo": 400, "aurora": 380, "niebla": 420}
 VX = 0                                        # borde izquierdo visible (se fija por escena)
 AQUI = os.path.dirname(os.path.abspath(__file__))
 OUT = os.environ.get("ACUARELA_OUT") or os.path.join(AQUI, "img")
@@ -446,16 +447,172 @@ def naranja():
     return e
 
 
-ESCENAS = dict(amarillo=amarillo, azul=azul, rosado=rosado, verde=verde, morado=morado, naranja=naranja)
+# ---------------------------------------------------------------- TURQUESA: laguna con palmeras
+def palmera(e, x, base, alto, inc):
+    r = e.r
+    tx, ty = x + inc, base - alto
+    tr = [e.linea(f"M{n(x)} {n(base)} Q{n(x + inc * .2)} {n(base - alto * .6)} {n(tx)} {n(ty)}", "#6b4a35", max(6, alto * .04), .9)]
+    hojas = []
+    for i in range(9):
+        a = -math.pi * (.05 + .9 * i / 8) + r.uniform(-.1, .1)
+        L = alto * r.uniform(.45, .62)
+        ex, ey = tx + math.cos(a) * L, ty + math.sin(a) * L * .7 + L * .35
+        hojas.append(e.linea(f"M{n(tx)} {n(ty)} Q{n(tx + math.cos(a) * L * .5)} {n(ty + math.sin(a) * L * .6 - 25)} {n(ex)} {n(ey)}",
+                             r.choice(["#2f8a62", "#3fa874", "#1f6f52"]), max(5, alto * .035), .85))
+    return tr, hojas
+
+
+def turquesa():
+    e = Esc(71, "#f4f9f3")
+    r = e.r
+    hz = 600
+    e.g([e.full(e.grad([(0, "#7fd6e0"), (.55, "#c4f0ea"), (1, "#fff4d6")]))])
+    halo(e, 1450, 230, 400, "#fffbe0", .9)
+    e.g([e.p(e.blob(1450, 230, 100, 100, 11, .03), "#fff6c4", .95, False)], "fino", mult=False)
+    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(80, 420), r.uniform(180, 320), r.uniform(26, 46), 9, .22), "#ffffff", .75, False) for _ in range(6)], mult=False)
+    e.g([e.p(e.cresta(hz - 16, 16, 100, 150, 700, hz + 4), "#5fb3b0", .55)])
+    e.g([e.p(f"M-100 {hz} L{W + 100} {hz} L{W + 100} {H + 100} L-100 {H + 100} Z", e.grad([(0, "#7fe0dc"), (.4, "#27bfc4"), (1, "#0a7f94")]), 1, False)], mult=False)
+    olas = []
+    for _ in range(120):
+        y = hz + 8 + (r.random() ** 1.4) * (H - hz)
+        k = (y - hz) / (H - hz)
+        olas.append(e.p(e.blob(r.uniform(-50, W + 50), y, r.uniform(90, 260) * (.5 + k), r.uniform(2.5, 6) * (.5 + k * 1.6), 8, .25),
+                        r.choice(["#e6fffb", "#0c7d90", "#5fd6d2", "#1aa5b5"]), r.uniform(.25, .5), False))
+    e.g(olas)
+    # bajío de arena en primer plano (derecha)
+    e.g([e.p(e.blob(1500, 1000, 640, 150, 9, .2), "#f6e2b4", .95, False), e.p(e.blob(1560, 980, 420, 90, 9, .2), "#fff1cf", .8, False)], mult=False)
+    # isla con palmeras
+    e.g([e.p(e.blob(450, 900, 520, 120, 9, .18), "#f1d9a0", .95, False), e.p(e.blob(430, 880, 300, 70, 9, .2), "#7cc27a", .8)], mult=False)
+    for (x, b, a, inc) in ((300, 880, 470, -70), (470, 890, 560, 60), (640, 900, 380, 90), (1560, 990, 330, -50)):
+        tr, hj = palmera(e, x, b, a, inc)
+        e.g(tr, "fino", mult=False)
+        e.g(hj, "fino")
+    # reflejo del sol
+    e.g([e.p(e.blob(1450 + r.uniform(-60, 60), hz + 30 + i * 24, 80 - i * 2.4, 4 + i * .18, 8, .3), "#fffbe0", .55 - i * .012, False) for i in range(16)], "fino", mult=False)
+    e.g(e.salpicar(35, "#ffffff", 0, 0, W, H, 6, .7), "fino", mult=False)
+    return e
+
+
+# ---------------------------------------------------------------- ROJO: otoño con arces
+def arce(e, x, y, s):
+    r = e.r
+    tr = [e.linea(f"M{n(x)} {n(H + 60)} Q{n(x + r.uniform(-30, 30))} {n((y + H) / 2)} {n(x)} {n(y + s * .3)}", "#4a2f2a", max(8, s * .13), .9)]
+    for sgn in (-1, 1):
+        tr.append(e.linea(f"M{n(x)} {n(y + s * .7)} L{n(x + sgn * s * .55)} {n(y + s * .15)}", "#4a2f2a", max(4, s * .06), .85))
+    copa = []
+    for _ in range(14):
+        copa.append(e.p(e.blob(x + r.uniform(-s, s) * .85, y + r.uniform(-s, s * .3) * .8, s * r.uniform(.28, .5), s * r.uniform(.22, .4), 8, .25),
+                        r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24", "#f2b134"]), r.uniform(.5, .75), False))
+    return tr, copa
+
+
+def rojo():
+    e = Esc(83, "#fbf1e6")
+    r = e.r
+    hz = 700
+    e.g([e.full(e.grad([(0, "#f6c9a6"), (.5, "#fbe0c0"), (1, "#fff0d8")]))])
+    halo(e, 600, 330, 380, "#fff3d6", .9)
+    e.g([e.p(e.blob(600, 330, 95, 95, 11, .03), "#fff0cf", .93, False)], "fino", mult=False)
+    e.g([e.p(e.cresta(hz - 40, 60, 260), "#d6866a", .45)])
+    e.g([e.p(e.cresta(hz + 10, 40, 220), "#b8523a", .55)])
+    e.g([e.p(e.cresta(hz + 80, 25, 240), "#d99a4a", .8)], mult=False)
+    # camino en perspectiva cubierto de hojas
+    e.g([e.p(suave([(930, hz + 70), (1010, hz + 70), (1130, 860), (1560, H + 90), (380, H + 90), (800, 860)], True), "#e8b36a", .85)], mult=False)
+    hojas = []
+    for _ in range(200):
+        y = r.uniform(hz + 90, H)
+        k = (y - hz) / (H - hz)
+        x = r.uniform(300, 1700)
+        hojas.append(e.p(e.blob(x, y, r.uniform(8, 20) * (.4 + k), r.uniform(5, 11) * (.4 + k), 6, .2, r.uniform(0, 3)),
+                         r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24"]), r.uniform(.5, .8), False))
+    e.g(hojas, "fino", mult=False)
+    for (x, y, s) in ((130, 380, 330), (1780, 340, 360), (520, 560, 190), (1430, 590, 200), (1050, 640, 130)):
+        t, c = arce(e, x, y, s)
+        e.g(t, "fino", mult=False)
+        e.g(c)
+    caen = []
+    for _ in range(90):
+        x, y = r.uniform(0, W), r.uniform(60, H)
+        caen.append(e.p(e.blob(x, y, r.uniform(7, 14), r.uniform(4, 8), 6, .2, r.uniform(0, 3)), r.choice(["#d8321e", "#f08a2a", "#f2b134"]), .75, False))
+    e.g(caen, "fino", mult=False)
+    return e
+
+
+# ---------------------------------------------------------------- AURORA: luces del norte sobre el lago
+def pino(e, x, base, alto, c, op):
+    ancho = alto * .38
+    der = [(x, base - alto)]
+    for i in range(1, 5):
+        t = i / 4
+        der += [(x + ancho * t * .5, base - alto * (1 - t) + alto * .08), (x + ancho * t * .28, base - alto * (1 - t) + alto * .02)]
+    der += [(x + ancho * .52, base)]
+    izq = [(2 * x - px, py) for px, py in der[:0:-1]]
+    return e.p(suave(der + izq, True), c, op, False)
+
+
+def aurora():
+    e = Esc(97, "#eef4f4")
+    r = e.r
+    hz = 640
+    e.g([e.full(e.grad([(0, "#06122e"), (.55, "#0f3a52"), (1, "#1d6a72")]))])
+    e.g([e.circ(r.uniform(0, W), r.uniform(0, 520), r.uniform(1.4, 3.4), "#f4fffb", r.uniform(.5, .95)) for _ in range(90)], "fino", mult=False)
+    cortinas = []
+    for i, col in enumerate(["#3cf2a2", "#35d6d8", "#7be8c8", "#8a7cf0"]):
+        pts = [(x, 160 + 70 * i + math.sin(x / 260 + i * 1.7) * 90 + r.uniform(-25, 25)) for x in range(-100, W + 200, 190)]
+        g = e.grad([(0, col), (1, "#06122e")], 0, 1)
+        cortinas.append(f'<path d="{suave(pts)} L{W + 200} {hz} L-100 {hz} Z" fill="{g}" fill-opacity=".34"/>')
+    e.g(cortinas, "brillo", mult=False)
+    e.g([e.p(e.cresta(hz - 90, 70, 200, -100, W + 100, hz + 4), "#274f68", .85)], mult=False)
+    e.g([e.p(e.cresta(hz - 40, 40, 170, -100, W + 100, hz + 4), "#1b3a52", .9)], mult=False)
+    # lago con reflejo
+    e.g([e.p(f"M-100 {hz} L{W + 100} {hz} L{W + 100} {H + 100} L-100 {H + 100} Z", e.grad([(0, "#2a7a82"), (.5, "#134a5e"), (1, "#071b36")]), 1, False)], mult=False)
+    e.g([e.p(e.blob(r.uniform(300, 1500), hz + 40 + i * 28, r.uniform(200, 420), 8 + i, 8, .3), r.choice(["#3cf2a2", "#35d6d8"]), .2, False) for i in range(10)], "fino", mult=False)
+    e.g([e.p(e.blob(r.uniform(-50, W + 50), hz + 10 + (r.random() ** 1.4) * (H - hz), r.uniform(100, 280), r.uniform(2.5, 6), 8, .25), r.choice(["#04122c", "#2a7a82", "#7be8c8"]), r.uniform(.2, .4), False) for _ in range(70)])
+    # pinos a ambos lados
+    pinos = []
+    for _ in range(26):
+        x = r.choice([r.uniform(-60, 520), r.uniform(1400, 1980)])
+        pinos.append(pino(e, x, hz + r.uniform(20, 60), r.uniform(120, 340), "#07201f", .88))
+    for x, a in ((120, 560), (1800, 640), (380, 420), (1560, 470)):
+        pinos.append(pino(e, x, H + 60, a, "#041411", .93))
+    e.g(pinos, "fino", mult=False)
+    e.g(e.salpicar(30, "#dffff4", 0, 0, W, 500, 4, .8), "fino", mult=False)
+    return e
+
+
+# ---------------------------------------------------------------- GRIS: montañas entre la niebla
+def niebla():
+    e = Esc(101, "#f1f2f1")
+    r = e.r
+    e.g([e.full(e.grad([(0, "#bfcad6"), (.5, "#dde3e8"), (1, "#f2efe8")]))])
+    halo(e, 1250, 260, 360, "#ffffff", .85)
+    e.g([e.p(e.blob(1250, 260, 85, 85, 11, .03), "#fbfbf6", .9, False)], "fino", mult=False)
+    capas = [(430, 90, "#9fb0c4", .5), (520, 70, "#8498b0", .55), (620, 55, "#6a809c", .62), (730, 40, "#506784", .7), (850, 30, "#3a5070", .8)]
+    for (b, a, c, op) in capas:
+        e.g([e.p(e.cresta(b, a, 230), c, op)])
+        e.g([e.p(e.blob(r.uniform(300, 1700), b + 70, r.uniform(420, 700), r.uniform(26, 48), 9, .25), "#f4f6f7", .72, False) for _ in range(3)], mult=False)
+    pinos = []
+    for _ in range(34):
+        pinos.append(pino(e, r.uniform(-40, W + 40), 960 + r.uniform(0, 80), r.uniform(90, 240), r.choice(["#2c4260", "#243750"]), .8))
+    for x, a in ((160, 520), (1760, 600), (460, 330), (1480, 380)):
+        pinos.append(pino(e, x, H + 60, a, "#1c2c44", .88))
+    e.g(pinos, "fino", mult=False)
+    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(880, 1040), r.uniform(380, 640), r.uniform(26, 44), 9, .25), "#f4f6f7", .55, False) for _ in range(4)], mult=False)
+    e.g(e.salpicar(35, "#ffffff", 0, 0, W, H, 5, .6), "fino", mult=False)
+    return e
+
+
+ESCENAS = dict(amarillo=amarillo, azul=azul, rosado=rosado, verde=verde, morado=morado, naranja=naranja,
+               turquesa=turquesa, rojo=rojo, aurora=aurora, niebla=niebla)
 
 def cielo_extra(nombre, e):
     """Cielo añadido por encima de la escena en la versión vertical."""
     r = e.r
     x0, x1, y0, y1 = VX - 80, VX + CW + 80, -DY, 0
-    noche = nombre in ("azul", "morado")
+    noche = nombre in ("azul", "morado", "aurora")
     if noche:
         e.g([e.circ(r.uniform(x0, x1), r.uniform(y0, y1 - 40), r.uniform(1.4, 3.6), "#fffdf0", r.uniform(.45, .95)) for _ in range(150)], "fino", mult=False)
-    nubes = {"amarillo": "#fffaf0", "naranja": "#fff1d6", "rosado": "#ffc4da", "verde": "#e9f8d2", "azul": "#2a4d9b", "morado": "#d2aef0"}[nombre]
+    nubes = {"amarillo": "#fffaf0", "naranja": "#fff1d6", "rosado": "#ffc4da", "verde": "#e9f8d2", "azul": "#2a4d9b", "morado": "#d2aef0", "turquesa": "#ffffff", "rojo": "#ffd9b0", "aurora": "#2a7a82", "niebla": "#f4f6f7"}[nombre]
     op = .2 if noche else .7
     e.g([e.p(e.blob(r.uniform(x0, x1), r.uniform(y0 + 60, y1 - 120), r.uniform(190, 340), r.uniform(26, 50), 9, .22), nubes, op * r.uniform(.6, 1), False)
          for _ in range(9)], mult=False)
