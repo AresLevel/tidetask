@@ -258,3 +258,11 @@ body:has(#ajustes.abierto) .barra { display: none; }
 @media (max-width: 760px) {
   .panel#ajustes .panel-x, .panel#musica .panel-x { top: calc(var(--sat) + .7rem); right: calc(.9rem + env(safe-area-inset-right, 0px)); }
 }
+
+/* El contenido corre hasta el borde real de la pantalla (bajo la barra de gestos); solo se reserva el teclado */
+@media (max-width: 760px) {
+  .agenda { padding-bottom: var(--kb); }
+  .ag-lado { padding-bottom: calc(1.6rem + var(--sab)); }
+  .ag-pie { padding-bottom: calc(.9rem + var(--sab)); }
+  .ag-caja::before { bottom: calc(-1 * var(--kb)); }
+}
