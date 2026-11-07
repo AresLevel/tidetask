@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=36">
+<link rel="stylesheet" href="agenda.css?v=37">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -277,6 +277,11 @@
     .panel { top: auto; left: 0; right: 0; bottom: var(--tabs-h); width: 100%; max-height: 72dvh; border-radius: 1.4rem 1.4rem 0 0; padding: 1.2rem 1.2rem 1.4rem; z-index: 25;
              transform: translateY(24px); overflow-y: auto; overscroll-behavior: contain; }
     .panel.abierto { transform: none; }
+    /* ajustes: su propia pantalla (como Hoy, Enfoque y Agenda), no una hoja flotante */
+    .panel#ajustes { top: var(--sat); bottom: var(--tabs-h); max-height: none; border-radius: 0; border: 0; padding: 1.3rem 1.2rem 2rem; transform: none; z-index: 24;
+                     background: var(--ag-solid, var(--vidrio)); backdrop-filter: blur(26px); gap: 1.1rem; }
+    .panel#ajustes::before { content: 'Ajustes'; display: block; font-size: 1.7rem; font-weight: 600; letter-spacing: -.01em; color: var(--texto); padding: 0 .1rem .2rem; }
+    body:has(#ajustes.abierto) .barra { display: none; }
     .toast { bottom: calc(var(--tabs-h) + 1rem); }
     .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--tabs-h); padding-bottom: calc(var(--sab) + var(--kb));
             background: var(--vidrio); border-top: 1px solid var(--borde); backdrop-filter: blur(22px); }
@@ -423,8 +428,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=36"></script>
-<script src="agenda.js?v=36"></script>
+<script src="nube.js?v=37"></script>
+<script src="agenda.js?v=37"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -800,7 +805,7 @@
   }
   document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
     const t = b.dataset.t;
-    if (t === 'ajustes') { abrirPanel('ajustes'); return; }
+    if (t === 'ajustes') { Agenda.cerrar(); if (!$('ajustes').classList.contains('abierto')) abrirPanel('ajustes'); return; }
     cerrarPaneles();
     if (t === 'agenda') Agenda.abrir(); else { Agenda.cerrar(); irA(t); }
   });
