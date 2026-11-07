@@ -240,3 +240,10 @@ body:has(#ajustes.abierto) .barra { display: none; }
 .panel-x { z-index: 5; width: 2.6rem; height: 2.6rem; opacity: 1; border: 1.5px solid color-mix(in srgb, var(--texto) 50%, transparent); background: color-mix(in srgb, var(--papel) 45%, transparent); text-shadow: none; filter: drop-shadow(0 0 4px var(--halo)); }
 .panel#ajustes .panel-x { top: .9rem; right: .9rem; }
 .panel-x:hover { background: var(--acento); color: var(--acento-texto); }
+
+/* ---- Límites del teléfono: barra de estado, barra de gestos y esquinas ---- */
+@media (max-width: 760px) {
+  .agenda { padding: var(--sat) env(safe-area-inset-right, 0px) var(--tabs-h) env(safe-area-inset-left, 0px); }
+  .ag-detalle { padding-bottom: calc(1.6rem + var(--sab)); padding-left: max(1.4rem, env(safe-area-inset-left, 0px)); padding-right: max(1.4rem, env(safe-area-inset-right, 0px)); }
+  .ag-caja.en-menu .ag-lado { padding-top: .6rem; }
+}
