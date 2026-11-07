@@ -23,6 +23,7 @@
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   /** Texto corto de una fecha: Hoy, Mañana, un día de la semana, o «9 nov». */
   L.etiquetaFecha = (s, hoy = L.hoy()) => {
+    if (!s) return '';
     const n = L.diff(hoy, s), d = aFecha(s);
     if (n === 0) return 'Hoy';
     if (n === 1) return 'Mañana';
@@ -625,8 +626,8 @@
       let grupo = null;
       for (const t of xs) {
         let g2 = null;
-        if (!ui.q && ui.vista.tipo === 'hoy') g2 = t.fecha < hoy ? 'Vencidas' : 'Hoy';
-        else if (!ui.q && ui.vista.tipo === 'proximas') g2 = L.etiquetaFecha(t.fecha, hoy);
+        if (!ui.q && ui.vista.tipo === 'hoy') g2 = dia(t) < hoy ? 'Vencidas' : 'Hoy';
+        else if (!ui.q && ui.vista.tipo === 'proximas') g2 = L.etiquetaFecha(dia(t), hoy);
         else if (!ui.q && (ui.vista.tipo === 'lista' || ui.vista.tipo === 'etiqueta') && t.hecha) g2 = 'Completadas';
         if (g2 !== grupo) { grupo = g2; if (g2) c.append(h('div', { class: 'ag-grupo' }, g2)); }
         c.append(fila(t, hoy));
