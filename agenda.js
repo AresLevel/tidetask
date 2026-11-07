@@ -695,7 +695,12 @@
   function estiloLista(l) {
     const cambiar = campos => { Object.assign(l, campos, { t: Date.now() }); guardar(); todo(); };
     const xs = listasOrdenadas(), i = xs.findIndex(x => x.id === l.id);
+    const nombre = h('input', { type: 'text', class: 'ag-input', id: 'agNombreLista', value: l.nombre, maxLength: 40, placeholder: 'Nombre de la lista', disabled: l.id === 'inbox',
+      onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter') nombre.blur(); },
+      onchange: () => { const n = nombre.value.trim(); if (n && n !== l.nombre) cambiar({ nombre: n }); else nombre.value = l.nombre; } });
+    if (ui.enfocarNombre) { ui.enfocarNombre = false; setTimeout(() => { nombre.focus(); nombre.select(); }, 60); }
     return h('div', { class: 'ag-estilo' },
+      h('div', { class: 'ag-campo' }, h('label', { for: 'agNombreLista' }, 'Nombre'), nombre),
       h('div', { class: 'ag-campo' }, h('label', null, 'Color'), paleta(l.color, c => cambiar({ color: c || COLORES[0] }), false)),
       h('div', { class: 'ag-campo' }, h('label', null, 'Icono'), selectorIconos(l.icono, k => cambiar({ icono: k }))),
       h('div', { class: 'ag-campo' }, h('label', null, 'Orden en la barra lateral'), h('div', { class: 'ag-chips' },
@@ -798,7 +803,12 @@
       h('div', { class: 'ag-seccion' }, item('hoy', 'Hoy', 'hoy', cu.hoy), item('proximas', 'Próximas', 'prox', cu.proximas), item('todas', 'Todas', 'todas', cu.todas),
         item('rutinas', 'Rutinas', 'rutinas', cu.rutinas), item('historial', 'Historial', 'hechas', 0)),
       h('div', { class: 'ag-seccion' },
-        h('div', { class: 'ag-sec-tit' }, 'Listas', h('button', { class: 'ag-mini', 'aria-label': 'Nueva lista', onclick: () => { ui.nuevaLista = true; lado(); } }, ico('mas'))),
+        h('div', { class: 'ag-sec-tit' }, 'Listas', h('button', { class: 'ag-mini', 'aria-label': 'Nueva lista', onclick: () => {
+          if (matchMedia('(max-width: 760px)').matches) {   // teléfono: se crea al instante y el nombre se escribe en Personalizar
+            const l = { id: 'l' + Date.now().toString(36), nombre: 'Nueva lista', color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, t: Date.now() };
+            E.listas.push(l); guardar(); irALista(l); ui.personalizar = true; ui.enfocarNombre = true; todo(); return;
+          }
+          ui.nuevaLista = true; lado(); } }, ico('mas'))),
         listasOrdenadas().map(l => item('lista', l.nombre, null, cu.listas[l.id] || 0, { id: l.id, color: l.color, icono: l.icono })),
         ui.nuevaLista && h('input', { type: 'text', class: 'ag-input chico', placeholder: 'Nombre de la lista', maxLength: 40, id: 'agNuevaLista',
           onkeydown: e => { e.stopPropagation(); if (e.key === 'Escape') { ui.nuevaLista = false; lado(); } if (e.key === 'Enter') e.target.blur(); },
