@@ -323,6 +323,16 @@
     if (!o.icono && !o.color) return null;
     return h('span', { class: 'ag-ins', style: o.color ? `--c:${o.color}` : '' }, o.icono && ICO['i_' + o.icono] ? ico('i_' + o.icono) : null);
   }
+  // Paisajes (acuarelas de img/): cada lista tiene el suyo; por defecto sale del color de la lista.
+  const PAISAJES = [['amarillo', 'Girasoles'], ['naranja', 'Globos'], ['rosado', 'Cerezo en flor'], ['morado', 'Lavanda de noche'], ['azul', 'Velero'], ['verde', 'Bosque']];
+  const PAISAJE_COLOR = { '#4f8fe0': 'azul', '#3aa6b9': 'azul', '#6c7ae0': 'morado', '#4fb286': 'verde', '#9bbf4a': 'verde', '#f0a93b': 'amarillo', '#e8853d': 'naranja',
+    '#e8553d': 'naranja', '#e06fa4': 'rosado', '#9b6ad8': 'morado', '#8a6a4f': 'naranja', '#7b8794': 'azul' };
+  const paisajeDe = l => (l.fondo && PAISAJES.some(x => x[0] === l.fondo)) ? l.fondo : (PAISAJE_COLOR[(l.color || '').toLowerCase()] || 'azul');
+  function selectorPaisajes(l, alElegir) {
+    return h('div', { class: 'ag-paisajes' },
+      h('button', { class: 'ag-paisaje auto' + (!l.fondo ? ' on' : ''), 'aria-label': 'Paisaje automático según el color', onclick: () => alElegir('') }, h('span', null, 'Auto')),
+      PAISAJES.map(([id, nombre]) => h('button', { class: 'ag-paisaje' + (l.fondo === id ? ' on' : ''), 'aria-label': nombre, dataset: { tip: nombre }, style: `background-image:url(img/${id}.jpg)`, onclick: () => alElegir(id) })));
+  }
   function selectorIconos(actual, alElegir) {
     return h('div', { class: 'ag-iconos' }, Object.keys(ICONOS).map(k => h('button', { class: 'ag-icono' + (actual === k ? ' on' : ''), 'aria-label': k, onclick: () => alElegir(actual === k ? '' : k) }, ico('i_' + k))));
   }
@@ -336,7 +346,7 @@
   const sumarHora = (hora, min) => { const [hh, mm] = (hora || '09:00').split(':').map(Number), tot = Math.max(0, Math.min(23 * 60 + 45, hh * 60 + mm + min)); return `${p2(Math.floor(tot / 60))}:${p2(tot % 60)}`; };
   const animar = () => document.body.classList.contains('anim-siempre') || !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let E = L.normalizar(null), abierta = false, refs = {}, alCambiarActiva = null, temporizadorSync = 0, activa = null, calAbierto = false, iconosAbierto = false, recien = null;
+  let E = L.normalizar(null), abierta = false, refs = {}, alCambiarActiva = null, alCambiarPaisaje = null, temporizadorSync = 0, activa = null, calAbierto = false, iconosAbierto = false, recien = null;
   const ui = { vista: { tipo: 'hoy' }, sel: null, q: '', verHechas: false, nuevaLista: false, renombrar: false, sidebar: false, personalizar: false, semana: 0 };
   const CLAVE = 'agenda.v1';
 
@@ -390,52 +400,8 @@
     if (datos === ultimoWidget) return; ultimoWidget = datos;
     try { P.actualizarWidget(JSON.parse(datos)).catch(() => {}); } catch { /* sin widget */ }
   }
-  function refrescarHoy() {
-    const c = refs.hoy; if (!c) return;
-    const hoy = L.hoy(), xs = L.filtrar(E, { tipo: 'hoy' }, hoy, '', false);
-    enviarWidget(xs);
-    const normales = xs.filter(t => !t.rep), rutinas = xs.filter(t => t.rep), hechasR = rutinasHechasHoy(hoy);
-    const hechasHoy = E.tareas.filter(t => (t.hecha && t.hechaEn && L.hoy(new Date(t.hechaEn)) === hoy) || (t.rep && t.ultima === hoy)).length;
-    const a = document.activeElement, tecleando = !!(a && c.contains(a) && a.classList.contains('hy-nueva')), valor = tecleando ? a.value : '';
-    const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: matchMedia('(max-width: 760px)').matches ? 'Añadir una tarea…' : 'Añadir una tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
-      onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { const v = e.target.value; e.target.value = ''; agregarHoy(v); } } });
-    entrada.value = valor;
-    let orden = 0;
-    const fila = t => {
-      const metas = [
-        ...metasTarea(t, hoy, 'hy-meta'),
-        t.subs.length > 0 && h('span', { class: 'hy-meta' }, `${t.subs.filter(x => x.hecha).length}/${t.subs.length} pasos`),
-        (t.pomos > 0 || t.est > 0) && h('span', { class: 'hy-meta' }, `${t.pomos}${t.est ? ' de ' + t.est : ''} pomodoros`),
-        ...t.etiquetas.map(x => h('span', { class: 'hy-meta' }, '#' + x)),
-      ].filter(Boolean);
-      return deslizable(h('div', { class: 'hy-fila' + (activa === t.id ? ' activa' : '') + (recien === t.id ? ' nueva' : ''), style: `--i:${orden++}`, role: 'button', tabIndex: 0, onclick: () => Agenda.abrirTarea(t.id),
-          onkeydown: e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); Agenda.abrirTarea(t.id); } } },
-        h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Completar ' + (t.titulo || 'tarea'), onclick: e => { e.stopPropagation(); completar(e.currentTarget, t.id); } }),
-        insignia(t),
-        h('div', { class: 'hy-cuerpo' }, h('div', { class: 'hy-t' }, t.titulo || '(sin título)'), metas.length > 0 && h('div', { class: 'hy-metas' }, metas)),
-        h('button', { class: 'hy-play', 'aria-label': 'Enfocar en ' + (t.titulo || 'esta tarea'), onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play'))), t.id);
-    };
-    c.textContent = '';
-    c.append(
-      h('header', { class: 'hy-cab' },
-        h('div', null, h('h1', { class: 'hy-h' }, 'Hoy'), h('p', { class: 'hy-fecha' }, textoFecha() + (xs.length ? ` · ${xs.length} ${xs.length === 1 ? 'pendiente' : 'pendientes'}` : ''))),
-        h('button', { class: 'hy-ver', onclick: () => Agenda.abrirHoy() }, 'Agenda')),
-      h('div', { class: 'hy-caja' }, h('span', { class: 'hy-mas' }, ico('mas')), entrada),
-      h('div', { class: 'hy-lista' },
-        xs.length === 0 && hechasR.length === 0 && h('p', { class: 'hy-vacio' }, 'Nada pendiente para hoy. Escribe arriba lo que quieras hacer, o empieza un enfoque libre.'),
-        normales.map(fila),
-        rutinas.length > 0 && h('div', { class: 'hy-grupo' }, 'Rutinas'),
-        rutinas.map(fila),
-        hechasR.length > 0 && h('div', { class: 'hy-grupo' }, 'Cumplidas hoy'),
-        hechasR.map(t => h('div', { class: 'hy-fila hecha', role: 'button', tabIndex: 0, onclick: () => Agenda.abrirTarea(t.id) },
-          h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Desmarcar ' + (t.titulo || 'rutina'), onclick: e => { e.stopPropagation(); alternarDia(t, hoy); } }),
-          insignia(t),
-          h('div', { class: 'hy-cuerpo' }, h('div', { class: 'hy-t' }, t.titulo || '(sin título)'), h('div', { class: 'hy-metas' }, h('span', { class: 'hy-meta' }, vuelve(t, hoy))))))),
-      h('footer', { class: 'hy-pie' },
-        hechasHoy > 0 && h('span', { class: 'hy-hechas' }, `${hechasHoy} ${hechasHoy === 1 ? 'hecha' : 'hechas'} hoy`),
-        h('span', { style: 'flex:1' }),
-        h('button', { class: 'hy-libre', onclick: () => enfocar(null) }, ico('play'), 'Enfoque libre')));
-    if (tecleando) entrada.focus();
+  function refrescarHoy() {   // Hoy es una lista inteligente más de la Agenda; aquí solo se actualiza el widget del teléfono
+    enviarWidget(L.filtrar(E, { tipo: 'hoy' }, L.hoy(), '', false));
   }
 
   function editar(id, cambios, refrescar = 'lista') {
@@ -815,6 +781,7 @@
       h('div', { class: 'ag-campo' }, h('label', { for: 'agNombreLista' }, 'Nombre'), nombre),
       h('div', { class: 'ag-campo' }, h('label', null, 'Color'), paleta(l.color, c => cambiar({ color: c || COLORES[0] }), false)),
       h('div', { class: 'ag-campo' }, h('label', null, 'Icono'), selectorIconos(l.icono, k => cambiar({ icono: k }))),
+      h('div', { class: 'ag-campo' }, h('label', null, 'Paisaje'), selectorPaisajes(l, k => cambiar({ fondo: k }))),
       l.id !== 'inbox' && h('div', { class: 'ag-campo' }, h('label', null, 'Grupo'), h('div', { class: 'ag-chips' },
         h('button', { class: 'ag-chip' + (!grupoDe(l) ? ' on' : ''), onclick: () => cambiar({ grupo: '' }) }, 'Sin grupo'),
         gruposOrdenados().map(g => h('button', { class: 'ag-chip' + (l.grupo === g.id ? ' on' : ''), onclick: () => cambiar({ grupo: g.id }) }, g.nombre)),
@@ -950,7 +917,7 @@
         onpointerup: soltarLista, onpointercancel: soltarLista, ontouchmove: e => { if (alzada && e.cancelable) e.preventDefault(); }, onselectstart: e => e.preventDefault(),
         oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
       };
-      return h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
+      return h('button', { style: esLista ? `--foto:url(img/${paisajeDe(lista(extra.id))}.jpg)` : null, class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
       onclick: () => { if (largo) return; ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('en-menu'); todo(); } },
       extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n)); };
     c.textContent = '';
@@ -1168,7 +1135,7 @@
         confirmable('Eliminar tarea', '¿Seguro? Pulsa otra vez', () => eliminarTarea(t.id))));
   }
 
-  function todo() { lado(); listaUI(); detalle(); }
+  function todo() { lado(); listaUI(); detalle(); if (alCambiarPaisaje) alCambiarPaisaje(); }
 
   function nuevaDesdeTexto(texto) {
     const p = L.parsear(texto);
@@ -1198,14 +1165,12 @@
     refs.entrada = entrada;
     refs.centro = h('section', { class: 'ag-centro' },
       h('div', { class: 'ag-cab' }, h('button', { class: 'ag-mini menu', 'aria-label': 'Volver al menú', onclick: () => { ui.sel = null; refs.caja.classList.add('en-menu'); todo(); } }, ico('prev')), refs.titulo, refs.cuenta, h('span', { style: 'flex:1' }), refs.acciones,
-        h('button', { class: 'ag-mini ag-enf', 'aria-label': 'Enfoque libre', dataset: { tip: 'Enfoque libre' }, onclick: () => enfocar(null) }, ico('i_reloj')),
-        h('button', { class: 'ag-mini', 'aria-label': 'Cerrar agenda', onclick: cerrar }, ico('cerrar'))),
+        ),
       refs.nueva = h('div', { class: 'ag-nueva' }, h('span', { class: 'ag-mas' }, ico('mas')), entrada), refs.lista, refs.pie);
     refs.detalle = h('aside', { class: 'ag-detalle' });
     refs.caja = h('div', { class: 'ag-caja', onclick: e => e.stopPropagation() },
-      h('aside', { class: 'ag-lado' }, h('div', { class: 'ag-lado-tit' }, 'Mis tareas'), h('div', { class: 'ag-buscar' }, ico('buscar'), refs.buscar), refs.lado), refs.centro, refs.detalle);
+      h('aside', { class: 'ag-lado' }, h('div', { class: 'ag-lado-tit' }, h('b', null, 'Agenda'), h('small', null, textoFecha())), h('div', { class: 'ag-buscar' }, ico('buscar'), refs.buscar), refs.lado), refs.centro, refs.detalle);
     refs.raiz.append(refs.caja);
-    refs.raiz.addEventListener('click', cerrar);
     if (g.Nube) Nube.alCambiar = () => { if (abierta) lado(); };
   }
 
@@ -1215,26 +1180,31 @@
     todo(); sincronizar(false);
     if (matchMedia('(pointer: fine)').matches) setTimeout(() => refs.entrada.focus(), 200);
   }
-  function cerrar() {
-    abierta = false; refs.raiz.classList.remove('abierto'); document.body.classList.remove('agenda-abierta'); calAbierto = false;
-  }
+  function cerrar() { calAbierto = false; }   // la Agenda no se cierra: es la app
 
   const Agenda = {
     L,
     iniciar(opciones = {}) {
-      alCambiarActiva = opciones.alCambiarActiva || null;
+      alCambiarActiva = opciones.alCambiarActiva || null; alCambiarPaisaje = opciones.alCambiarPaisaje || null;
       cargar(); construir();
       document.addEventListener('pointerdown', e => { if (!e.target.closest('#agMenuCtx')) cerrarMenuCtx(); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMenuCtx(); });
       document.addEventListener('click', e => { if (ui.nubeMenu && !e.target.closest('.ag-nube')) { ui.nubeMenu = false; if (abierta) lado(); } });
-      refs.hoy = document.getElementById('hoy'); refrescarHoy();
+      refrescarHoy();
       if (alCambiarActiva) alCambiarActiva(Agenda.activaTitulo());
-      addEventListener('keydown', e => { if (abierta && e.key === 'Escape' && !e.defaultPrevented) { if (ui.sel) seleccionar(ui.sel); else cerrar(); } });
+      addEventListener('keydown', e => { if (abierta && e.key === 'Escape' && !e.defaultPrevented && ui.sel) seleccionar(ui.sel); });
       addEventListener('online', () => sincronizar(false));
       document.addEventListener('visibilitychange', () => { if (!document.hidden) { refrescarHoy(); revisarRecordatorios(); sincronizar(false); programarAvisos(); } });
       setInterval(revisarRecordatorios, 20000); revisarRecordatorios();
       setInterval(() => sincronizar(false), 90000);
       sincronizar(false);
+      abrir('menu');   // la Agenda es la app: está siempre abierta (en el teléfono se empieza por su menú)
+    },
+    /** Paisaje de la lista que se está viendo (null en el menú y en las vistas generales: entonces vale el de inicio). */
+    paisaje() {
+      if (!refs.caja || ui.q || ui.vista.tipo !== 'lista') return null;
+      if (matchMedia('(max-width: 760px)').matches && refs.caja.classList.contains('en-menu')) return null;
+      return paisajeDe(lista(ui.vista.id));
     },
     reprogramar: programarAvisos,
     /** Botón «atrás» del teléfono: devuelve true si la agenda lo atendió (cerró algo o volvió un nivel). */

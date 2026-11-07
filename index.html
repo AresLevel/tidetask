@@ -12,7 +12,8 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="img/app/icono-192.png">
-<link rel="stylesheet" href="agenda.css?v=41">
+<link rel="stylesheet" href="agenda.css?v=42">
+<link rel="stylesheet" href="acuarela.css?v=42">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -92,9 +93,9 @@
   /* ---- Dos vistas: Hoy (tareas) y Enfoque (reloj) ---- */
   .vista { display: flex; flex-direction: column; align-items: center; gap: 2rem; animation: entrar .45s ease both; }
   @keyframes entrar { from { opacity: 0; transform: translateY(12px); } }
-  body[data-vista="hoy"] .v-enfoque, body[data-vista="enfoque"] .v-hoy { display: none; }
-  body[data-vista="hoy"] .solo-enfoque, body[data-vista="enfoque"] .solo-hoy { display: none; }
-  body[data-vista="hoy"] .volver { display: none; }
+  body[data-vista="agenda"] .v-enfoque { display: none; }
+  body[data-vista="agenda"] .solo-enfoque, body[data-vista="enfoque"] .solo-agenda { display: none; }
+  body[data-vista="agenda"] .volver { display: none; }
   .v-hoy { gap: 1rem; }
   .foco { display: flex; align-items: center; justify-content: center; gap: .8rem; min-height: 2.4rem; margin-bottom: -.6rem; }
   .foco-titulo { max-width: min(80vw, 30rem); font-size: 1.2rem; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -266,7 +267,7 @@
     body.zen .tabs { opacity: 1; }
   }
   @media (max-width: 760px) {
-    :root { --tabs-h: calc(4rem + var(--sab) + var(--kb)); }
+    :root { --tabs-h: calc(var(--sab) + var(--kb)); }
     .pildora { bottom: calc(var(--tabs-h) + .7rem); }
     /* con el teclado abierto la barra inferior se esconde (queda debajo): lo demás solo sube lo justo */
     body.teclado { --tabs-h: var(--kb); }
@@ -274,10 +275,10 @@
     main { padding-top: var(--sat); padding-bottom: var(--tabs-h); }
     .reloj { font-size: clamp(5.5rem, 27vw, 9rem); }
     .modos button { padding: .55rem 1rem; }
-    .selector, .volver, .solo-escritorio { display: none !important; }
+    .selector, .solo-escritorio { display: none !important; }
     .solo-movil { display: flex; }
     .barra { top: calc(var(--sat) + .7rem); right: .9rem; }
-    .barra .btn-sec:not([data-panel="musica"]) { display: none; }
+    .barra #pantalla { display: none; }
     /* música y ajustes: hojas que suben desde abajo */
     .panel { top: auto; left: 0; right: 0; bottom: var(--tabs-h); width: 100%; max-height: 72dvh; border-radius: 1.4rem 1.4rem 0 0; padding: 1.2rem 1.2rem 1.4rem; z-index: 25;
              transform: translateY(24px); overflow-y: auto; overscroll-behavior: contain; }
@@ -298,19 +299,14 @@
   }
 </style>
 </head>
-<body data-vista="hoy">
+<body data-vista="agenda">
 
 <div class="fondo" id="f1"></div>
 <div class="fondo" id="f2"></div>
 <div class="velo"></div>
 
 <main>
-  <!-- Vista Hoy: las tareas son lo primero -->
-  <section class="vista v-hoy" id="vistaHoy">
-    <aside class="hoy" id="hoy" aria-label="Tareas de hoy"></aside>
-  </section>
-
-  <!-- Vista Enfoque: el reloj aparece cuando eliges enfocarte -->
+  <!-- La Agenda ocupa toda la app (ver #agenda). El reloj aparece solo cuando eliges enfocarte -->
   <section class="vista v-enfoque" id="vistaEnfoque">
     <div class="modos" id="modos">
       <button data-modo="enfoque" class="on">Enfoque</button>
@@ -351,8 +347,8 @@
 <nav class="selector" id="selector" aria-label="Fondos"></nav>
 
 <div class="barra" id="barra">
-  <button class="btn-sec solo-hoy" id="verHistorial" data-tip="Historial y estadísticas" aria-label="Historial y estadísticas">
-    <svg viewBox="0 0 24 24"><path d="M5 20v-7M11 20V5M17 20v-10"/><path d="M3 20h18"/></svg>
+  <button class="btn-sec solo-agenda" id="libre" data-tip="Enfoque libre" aria-label="Enfoque libre">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>
   </button>
   <button class="btn-sec solo-enfoque" data-panel="musica" data-tip="Música" aria-label="Música">
     <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
@@ -365,13 +361,6 @@
   </button>
 </div>
 
-<!-- Barra de pestañas (solo en el teléfono) -->
-<nav class="tabs" id="tabs" aria-label="Navegación">
-  <button data-t="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Agenda</span></button>
-  <button data-t="hoy"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Hoy</span></button>
-  <button data-t="enfoque"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span>Enfoque</span></button>
-  <button data-t="ajustes"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Ajustes</span></button>
-</nav>
 
 <!-- Música -->
 <aside class="panel solo-enfoque" id="musica" data-titulo="Música">
@@ -426,8 +415,9 @@
     <div class="ajuste"><span>Cambiar de escena al descansar</span><button class="sw" data-acc="sw" data-k="fondoDescansoOn" role="switch"></button></div>
     <div class="mini" id="descansoSel"></div>
   </div>
-  <div class="grupo solo-movil">
-    <h2>Fondo</h2>
+  <div class="grupo">
+    <h2>Paisaje de inicio</h2>
+    <p class="nota">Cada lista puede tener su propio paisaje (en Personalizar). Este es el de la pantalla principal.</p>
     <div class="mini" id="fondoSel"></div>
   </div>
   <p class="nota solo-escritorio">Atajos: Espacio inicia/pausa · R reinicia · S salta · F pantalla completa · Esc cierra paneles.</p>
@@ -438,8 +428,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=41"></script>
-<script src="agenda.js?v=41"></script>
+<script src="nube.js?v=42"></script>
+<script src="agenda.js?v=42"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -509,6 +499,7 @@
   let modo = 'enfoque', restante = dur('enfoque'), fin = null, corriendo = false, pomodoro = 1;
   let capa = 0, fondoActual = FONDOS[0], fondoElegido = localStorage.getItem('pomo.fondo') || FONDOS[0].id;
   const reloj = $('reloj'), btnIniciar = $('iniciar');
+  let vista = 'agenda';
   const guardarSesion = () => poner('pomo.ses', { modo, restante, fin, corriendo, pomodoro });
 
   // ============ Fondos ============
@@ -530,9 +521,14 @@
     const nueva = capas[capa ^= 1], vieja = capas[capa ^ 1];
     nueva.style.backgroundImage = `url(${urlFondo(tema.id)})`;
     nueva.classList.add('activo'); vieja.classList.remove('activo');
-    document.querySelectorAll('#selector button, #fondoSel button').forEach(b => b.classList.toggle('on', b.dataset.id === tema.id));
+    marcarFondo();
     if (corriendo && modo === 'enfoque') ambiente(true);   // la escena puede cambiar el sonido sugerido
   }
+  const marcarFondo = () => document.querySelectorAll('#selector button, #fondoSel button').forEach(b => b.classList.toggle('on', b.dataset.id === fondoElegido));
+  /** El paisaje que toca ahora: el del descanso en el reloj; en la Agenda, el de la lista abierta o el de inicio. */
+  const fondoVigente = () => vista === 'enfoque' ? fondoParaModo() : (Agenda.paisaje() || fondoElegido);
+  const aplicarFondoVigente = () => { const f = fondoVigente(); if (f !== fondoActual.id) ponerFondo(f, false); };
+  function elegirFondo(id) { fondoElegido = id; localStorage.setItem('pomo.fondo', id); marcarFondo(); aplicarFondoVigente(); }
   function fondoParaModo() {
     return (cfg.fondoDescansoOn && modo !== 'enfoque') ? cfg.fondoDescanso : fondoElegido;
   }
@@ -540,13 +536,13 @@
     const b = document.createElement('button');
     b.dataset.id = f.id; b.dataset.tip = f.nombre; b.setAttribute('aria-label', f.nombre);
     b.style.backgroundImage = `url(${url(f.id)})`;
-    b.onclick = () => ponerFondo(f.id);
+    b.onclick = () => elegirFondo(f.id);
     $('selector').appendChild(b);
     const m = b.cloneNode();
     m.removeAttribute('data-tip'); m.title = ''; m.dataset.fd = f.id;
-    m.onclick = () => { cfg.fondoDescanso = f.id; guardarCfg(); pintarAjustes(); if (modo !== 'enfoque') ponerFondo(fondoParaModo(), false); };
+    m.onclick = () => { cfg.fondoDescanso = f.id; guardarCfg(); pintarAjustes(); aplicarFondoVigente(); };
     $('descansoSel').appendChild(m);
-    const fm = b.cloneNode(); fm.removeAttribute('data-tip'); fm.onclick = () => ponerFondo(f.id); $('fondoSel').appendChild(fm);
+    const fm = b.cloneNode(); fm.removeAttribute('data-tip'); fm.onclick = () => elegirFondo(f.id); $('fondoSel').appendChild(fm);
   });
 
   // ============ Audio: alarma y sonido ambiente (sintetizados, sin archivos) ============
@@ -700,18 +696,18 @@
     pintarIcono();
   }
 
-  // ============ Vistas: Hoy (tareas) y Enfoque (reloj) ============
-  let vista = 'hoy';
+  // ============ Vistas: la Agenda (toda la app) y el Enfoque (reloj, secundario) ============
   const enProgreso = () => corriendo || restante !== dur(modo);
   function irA(v) {
     vista = v; document.body.dataset.vista = v;
     document.body.classList.remove('zen'); cerrarPaneles();
+    aplicarFondoVigente();
     pintarPildora();
   }
   // Mientras no estás en el reloj, una píldora recuerda que hay un enfoque (o un descanso) esperándote
   function pintarPildora(txt) {
-    const p = $('pildora'), agenda = document.body.classList.contains('agenda-abierta');
-    const ver = (vista !== 'enfoque' || agenda) && (enProgreso() || modo !== 'enfoque');
+    const p = $('pildora');
+    const ver = vista !== 'enfoque' && (enProgreso() || modo !== 'enfoque');
     p.hidden = !ver; if (!ver) return;
     $('pildoraIco').innerHTML = corriendo ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>';
     $('pildoraBtn').setAttribute('aria-label', corriendo ? 'Pausar' : 'Continuar');
@@ -729,10 +725,11 @@
     mostrarTitulo(); irA('enfoque');
     if (!corriendo) alternar();
   }
-  $('pildoraIr').onclick = () => { Agenda.cerrar(); irA('enfoque'); };
+  $('pildoraIr').onclick = () => irA('enfoque');
+  $('libre').onclick = () => empezarEnfoque(null);
   $('pildoraBtn').onclick = () => { alternar(); pintarPildora(); };
   // La Agenda es el centro de la app: «volver» desde el reloj lleva a la Agenda
-  const irAAgenda = () => { irA('hoy'); Agenda.abrir(); };
+  const irAAgenda = () => irA('agenda');
   $('volver').onclick = irAAgenda;
   $('hecha').onclick = () => {      // terminar la tarea a mitad de un enfoque lo da por cerrado
     Agenda.completarActiva(); ocultarCierre();
@@ -744,7 +741,7 @@
     document.querySelectorAll('#modos button').forEach(b => b.classList.toggle('on', b.dataset.modo === m));
     btnIniciar.textContent = 'Iniciar';
     document.body.classList.remove('zen');
-    const f = fondoParaModo(); if (f !== fondoActual.id) ponerFondo(f, false);
+    aplicarFondoVigente();
     guardarSesion(); pintar();
   }
   function alternar() {
@@ -778,7 +775,7 @@
     // Al cerrar un pomodoro con una tarea de por medio, se pregunta si ya quedó lista
     if (natural && eraEnfoque && Agenda.activaTitulo()) mostrarCierre();
     // Un descanso que termina (o se salta) devuelve a la lista, salvo que el enfoque siguiente arranque solo
-    if (!eraEnfoque && !corriendo) irA('hoy');
+    if (!eraEnfoque && !corriendo) irA('agenda');
   }
   let temporizadorCierre = 0;
   function ocultarCierre() { clearTimeout(temporizadorCierre); $('cierre').hidden = true; }
@@ -808,9 +805,12 @@
     if (abrir) { p.classList.add('abierto'); }
     document.querySelectorAll('[data-panel]').forEach(b => b.classList.toggle('on', abrir && b.dataset.panel === id));
   }
+  document.querySelectorAll('.panel').forEach(p => {
+    const x = document.createElement('button'); x.className = 'panel-x'; x.setAttribute('aria-label', 'Cerrar');
+    x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; x.onclick = () => cerrarPaneles(); p.prepend(x);
+  });
   function cerrarPaneles() { document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto')); document.querySelectorAll('[data-panel]').forEach(b => b.classList.remove('on')); }
   document.querySelectorAll('[data-panel]').forEach(b => b.onclick = () => abrirPanel(b.dataset.panel));
-  $('verHistorial').onclick = () => { cerrarPaneles(); Agenda.abrirHistorial(); };
   document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra, .tabs')) cerrarPaneles(); });
 
   // ============ Recordatorios de tareas (opt-in) ============
@@ -823,30 +823,14 @@
   }
   window.activarRecordatorios = alTerminar => { cfg.recordar = true; guardarCfg(); pintarAjustes(); pedirPermisoRecordar(alTerminar); aviso('Recordatorios activados. Avisan mientras esta página esté abierta.'); };
 
-  // ============ Barra de pestañas (teléfono) ============
-  function pintarTabs() {
-    const ajustes = $('ajustes').classList.contains('abierto'), agenda = document.body.classList.contains('agenda-abierta');
-    const activa = ajustes ? 'ajustes' : agenda ? 'agenda' : vista;
-    document.querySelectorAll('#tabs button').forEach(b => { const on = b.dataset.t === activa; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
-  }
-  document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
-    const t = b.dataset.t;
-    if (t === 'ajustes') { Agenda.cerrar(); if (!$('ajustes').classList.contains('abierto')) abrirPanel('ajustes'); return; }
-    cerrarPaneles();
-    if (t === 'agenda') Agenda.abrir(); else { Agenda.cerrar(); irA(t); }
-  });
-  new MutationObserver(() => { pintarTabs(); pintarPildora(); }).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-vista'] });
-  new MutationObserver(pintarTabs).observe($('ajustes'), { attributes: true, attributeFilter: ['class'] });
-  pintarTabs();
-
   // botón «atrás» de Android: cierra lo abierto, sube un nivel y, en la pantalla de inicio, minimiza la app
   (() => {
     const C = window.Capacitor, A = C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.App;
     if (!A) return;
     A.addListener('backButton', () => {
       if (document.querySelector('.panel.abierto')) { cerrarPaneles(); return; }
+      if (vista === 'enfoque') { irAAgenda(); return; }
       if (Agenda.atras()) return;
-      if (!Agenda.abierta()) { irAAgenda(); return; }
       A.minimizeApp();
     });
   })();
@@ -876,7 +860,7 @@
         else Avisos.pedir().then(ok => { if (!ok) { cfg.notif = false; guardarCfg(); pintarAjustes(); aviso('No se concedió el permiso de notificaciones'); } });
       }
       if (k === 'recordar' && cfg.recordar) pedirPermisoRecordar();
-      if (k === 'fondoDescansoOn') { const f = fondoParaModo(); if (f !== fondoActual.id) ponerFondo(f, false); }
+      if (k === 'fondoDescansoOn') aplicarFondoVigente();
     } else if (b.dataset.acc === 'anim') {
       cfg.anim = b.dataset.v;
     } else if (b.dataset.acc === 'amb') {
@@ -897,10 +881,10 @@
   }
   $('pantalla').onclick = pantallaCompleta;
   addEventListener('keydown', e => {
-    if (document.body.classList.contains('agenda-abierta')) return;   // la agenda maneja su propio teclado
     if (e.target.closest('input, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Escape') { if (document.querySelector('.panel.abierto')) cerrarPaneles(); else if (vista === 'enfoque') irAAgenda(); return; }
+    if (vista !== 'enfoque') { if (e.key === 'Escape' && document.querySelector('.panel.abierto')) cerrarPaneles(); return; }   // la Agenda maneja su propio teclado
+    if (e.key === 'Escape') { if (document.querySelector('.panel.abierto')) cerrarPaneles(); else irAAgenda(); return; }
     if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); return; }
     if (vista !== 'enfoque') return;
     if (e.code === 'Space') { e.preventDefault(); alternar(); }
@@ -911,7 +895,7 @@
   addEventListener('mousemove', () => {
     document.body.classList.remove('zen');
     clearTimeout(idle);
-    if (corriendo && vista === 'enfoque') idle = setTimeout(() => { if (!document.body.classList.contains('agenda-abierta')) document.body.classList.add('zen'); }, 4000);
+    if (corriendo && vista === 'enfoque') idle = setTimeout(() => document.body.classList.add('zen'), 4000);
   });
 
   // App de Android: el sistema indica cuánto ocupan la barra de estado, la de navegación y el teclado
@@ -936,14 +920,12 @@
       else terminoFuera = true;
     } else if (restante !== dur(modo)) btnIniciar.textContent = 'Continuar';
   }
-  const f0 = fondoParaModo(); if (f0 !== fondoActual.id) ponerFondo(f0, false);
-  Agenda.iniciar({ alCambiarActiva: () => { ocultarCierre(); mostrarTitulo(); pintarPildora(); } });
-  Agenda.abrir();   // la Agenda es el centro de la app: se abre al arrancar (en el teléfono, su menú)
+  Agenda.iniciar({ alCambiarActiva: () => { ocultarCierre(); mostrarTitulo(); pintarPildora(); }, alCambiarPaisaje: () => { if (vista !== 'enfoque') aplicarFondoVigente(); } });
   mostrarTitulo();
   // Al abrir: un enfoque a medias devuelve al reloj; si no, se empieza por la lista de Hoy
-  irA(enProgreso() ? 'enfoque' : 'hoy');
+  irA(enProgreso() ? 'enfoque' : 'agenda');
   pintarAjustes(); pintar();
-  if (terminoFuera) { terminar(true, true); irA('hoy'); aviso('El tiempo terminó mientras no estabas.'); }
+  if (terminoFuera) { terminar(true, true); irA('agenda'); aviso('El tiempo terminó mientras no estabas.'); }
   else if (corriendo) aviso('Sesión recuperada. El tiempo sigue corriendo.');
 </script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>

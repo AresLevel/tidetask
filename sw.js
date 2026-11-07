@@ -1,6 +1,6 @@
 // Service worker: la app abre sin conexión. Primero intenta la red (así las versiones nuevas llegan solas) y, si falla, usa lo guardado.
 const CACHE = 'pomodoro-v1';
-const BASE = ['./', 'index.html', 'agenda.js', 'agenda.css', 'nube.js', 'manifest.webmanifest', 'img/app/icono-192.png'];
+const BASE = ['./', 'index.html', 'agenda.js', 'agenda.css', 'acuarela.css', 'nube.js', 'manifest.webmanifest', 'img/app/icono-192.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(BASE.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
