@@ -379,3 +379,11 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 .desl-borrar { flex: none; width: 104px; height: 100%; display: flex; align-items: center; justify-content: center; gap: .4rem; border: 0; background: none; color: #fff; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
 .desl-borrar svg.ag-ico { width: 1.05rem; height: 1.05rem; }
 .hy-fila:not(.desl-abierta):not(.desl-arrastra) .desl-fondo { pointer-events: none; }
+
+/* ---- Reordenar listas: mantener pulsada y arrastrar ---- */
+.ag-nav.arrastrando { position: relative; z-index: 8; background: var(--ag-solid); box-shadow: 0 10px 28px rgba(0,0,0,.35), 0 0 0 1px var(--acento); touch-action: none; transition: none; cursor: grabbing; }
+.ag-nav.guia-antes, .ag-nav.guia-despues { position: relative; }
+.ag-nav.guia-antes::before, .ag-nav.guia-despues::after { content: ''; position: absolute; left: .4rem; right: .4rem; height: 3px; border-radius: 3px; background: var(--acento); box-shadow: 0 0 10px var(--acento); }
+.ag-nav.guia-antes::before { top: -3px; }
+.ag-nav.guia-despues::after { bottom: -3px; }
+.ag-ctx-pista { padding: .55rem .8rem .35rem; font-size: .72rem; line-height: 1.3; color: var(--texto-suave); }

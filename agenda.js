@@ -662,7 +662,6 @@
   const cerrarMenuCtx = () => { const m = document.getElementById('agMenuCtx'); if (m) m.remove(); };
   function menuLista(l, x, y) {
     cerrarMenuCtx();
-    const xs = listasOrdenadas(), i = xs.findIndex(q => q.id === l.id);
     const eliminar = h('button', { class: 'ag-ctx-op peligro', role: 'menuitem', onclick: e => {
       e.stopPropagation();
       if (!eliminar.dataset.armado) { eliminar.dataset.armado = '1'; eliminar.lastChild.textContent = '¿Seguro? Sus tareas pasan a Pendientes'; return; }
@@ -672,10 +671,8 @@
       h('div', { class: 'ag-ctx-tit' }, l.nombre),
       h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.personalizar = true; todo(); } }, ico('i_arte'), h('span', null, 'Personalizar')),
       l.id !== 'inbox' && h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.renombrar = true; todo(); } }, ico('i_lapiz'), h('span', null, 'Renombrar')),
-      h('div', { class: 'ag-ctx-par' },
-        h('button', { class: 'ag-ctx-op', disabled: i <= 0, onclick: e => { e.stopPropagation(); cerrarMenuCtx(); moverLista(l, -1); } }, ico('prev', 'sube'), h('span', null, 'Subir')),
-        h('button', { class: 'ag-ctx-op', disabled: i >= xs.length - 1, onclick: e => { e.stopPropagation(); cerrarMenuCtx(); moverLista(l, 1); } }, ico('sig', 'baja'), h('span', null, 'Bajar'))),
-      l.id !== 'inbox' && eliminar);
+      l.id !== 'inbox' && eliminar,
+      h('div', { class: 'ag-ctx-pista' }, 'Para cambiar su lugar, mantenla pulsada y arrástrala'));
     refs.raiz.append(m);
     const r = m.getBoundingClientRect(), margen = 10;
     m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
@@ -683,6 +680,15 @@
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
   }
   const listasOrdenadas = () => [...E.listas].sort((a, b) => (a.orden || 0) - (b.orden || 0) || (a.t || 0) - (b.t || 0));
+  /** Coloca la lista `l` justo antes (o después) de `idDestino`. */
+  function colocarLista(l, idDestino, despues) {
+    const xs = listasOrdenadas().filter(x => x.id !== l.id), i = xs.findIndex(x => x.id === idDestino);
+    if (i < 0) return;
+    xs.splice(despues ? i + 1 : i, 0, l);
+    const ahora = Date.now();
+    xs.forEach((x, k) => { if ((x.orden || 0) !== k) { x.orden = k; x.t = ahora; } });
+    guardar(); todo();
+  }
   function moverLista(l, delta) {
     const xs = listasOrdenadas(), i = xs.findIndex(x => x.id === l.id), j = i + delta;
     if (j < 0 || j >= xs.length) return;
@@ -694,7 +700,6 @@
   /** Panel para cambiar color, icono y orden de una lista. */
   function estiloLista(l) {
     const cambiar = campos => { Object.assign(l, campos, { t: Date.now() }); guardar(); todo(); };
-    const xs = listasOrdenadas(), i = xs.findIndex(x => x.id === l.id);
     const nombre = h('input', { type: 'text', class: 'ag-input', id: 'agNombreLista', value: l.nombre, maxLength: 40, placeholder: 'Nombre de la lista', disabled: l.id === 'inbox',
       onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter') nombre.blur(); },
       onchange: () => { const n = nombre.value.trim(); if (n && n !== l.nombre) cambiar({ nombre: n }); else nombre.value = l.nombre; } });
@@ -702,10 +707,7 @@
     return h('div', { class: 'ag-estilo' },
       h('div', { class: 'ag-campo' }, h('label', { for: 'agNombreLista' }, 'Nombre'), nombre),
       h('div', { class: 'ag-campo' }, h('label', null, 'Color'), paleta(l.color, c => cambiar({ color: c || COLORES[0] }), false)),
-      h('div', { class: 'ag-campo' }, h('label', null, 'Icono'), selectorIconos(l.icono, k => cambiar({ icono: k }))),
-      h('div', { class: 'ag-campo' }, h('label', null, 'Orden en la barra lateral'), h('div', { class: 'ag-chips' },
-        h('button', { class: 'ag-chip', disabled: i <= 0, onclick: () => moverLista(l, -1) }, 'Subir'),
-        h('button', { class: 'ag-chip', disabled: i >= xs.length - 1, onclick: () => moverLista(l, 1) }, 'Bajar'))));
+      h('div', { class: 'ag-campo' }, h('label', null, 'Icono'), selectorIconos(l.icono, k => cambiar({ icono: k }))));
   }
 
   // ---------------------------------------------------------------- rutinas: seguimiento por días cumplidos
@@ -789,14 +791,44 @@
     const cu = L.conteos(E), v = ui.vista;
     const item = (tipo, nombre, icono, n, extra = {}) => { let largo = false, tm = 0, sx = 0, sy = 0;
       const esLista = tipo === 'lista';
+      let alzada = false, movio = false, destino = null, pid = null, el = null;
+      const hermanas = () => [...el.parentElement.querySelectorAll('.ag-nav[data-lid]')].filter(x => x !== el);
+      const quitarGuia = () => el && el.parentElement && el.parentElement.querySelectorAll('.guia-antes,.guia-despues').forEach(x => x.classList.remove('guia-antes', 'guia-despues'));
+      const soltarLista = e => {
+        clearTimeout(tm);
+        if (!alzada) return;
+        alzada = false; quitarGuia(); el.classList.remove('arrastrando'); el.style.transform = '';
+        try { el.releasePointerCapture(pid); } catch { /* ya liberada */ }
+        setTimeout(() => { largo = false; }, 120);
+        if (e && e.type === 'pointercancel') return;
+        if (movio && destino) colocarLista(lista(extra.id), destino.id, destino.despues);
+        else if (!movio) menuLista(lista(extra.id), sx, sy);
+      };
       const pulsacion = !esLista ? {} : {
-        onpointerdown: e => { largo = false; sx = e.clientX; sy = e.clientY; clearTimeout(tm); tm = setTimeout(() => { largo = true; menuLista(lista(extra.id), sx, sy); }, 480); },
-        onpointermove: e => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(tm); },
-        onpointerup: () => clearTimeout(tm), onpointercancel: () => clearTimeout(tm), onpointerleave: () => clearTimeout(tm),
-        oncontextmenu: e => { e.preventDefault(); clearTimeout(tm); if (!document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); } },
+        'data-lid': extra.id,
+        onpointerdown: e => { el = e.currentTarget; largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
+          tm = setTimeout(() => {   // mantener pulsada: la lista se levanta; si se arrastra se reordena, si se suelta quieta abre su menú
+            largo = alzada = true; cerrarMenuCtx(); el.classList.add('arrastrando'); try { el.setPointerCapture(pid); } catch { /* sin captura */ }
+            if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
+          }, 450); },
+        onpointermove: e => {
+          if (!alzada) { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(tm); return; }
+          e.preventDefault();
+          const dy = e.clientY - sy; if (Math.abs(dy) > 8) movio = true;
+          el.style.transform = `translateY(${dy}px) scale(1.03)`;
+          if (!movio) return;
+          quitarGuia();
+          const otras = hermanas(); if (!otras.length) { destino = null; return; }
+          const sig = otras.find(x => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+          const ref = sig || otras[otras.length - 1];
+          ref.classList.add(sig ? 'guia-antes' : 'guia-despues');
+          destino = { id: ref.dataset.lid, despues: !sig };
+        },
+        onpointerup: soltarLista, onpointercancel: soltarLista,
+        oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
       };
       return h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
-      onclick: () => { if (largo) { largo = false; return; } ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado'); todo(); } },
+      onclick: () => { if (largo) return; ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado'); todo(); } },
       extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n)); };
     c.textContent = '';
     c.append(...[
