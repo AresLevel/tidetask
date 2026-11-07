@@ -357,7 +357,7 @@
     const normales = xs.filter(t => !t.rep), rutinas = xs.filter(t => t.rep), hechasR = rutinasHechasHoy(hoy);
     const hechasHoy = E.tareas.filter(t => (t.hecha && t.hechaEn && L.hoy(new Date(t.hechaEn)) === hoy) || (t.rep && t.ultima === hoy)).length;
     const a = document.activeElement, tecleando = !!(a && c.contains(a) && a.classList.contains('hy-nueva')), valor = tecleando ? a.value : '';
-    const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: 'Añadir una tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
+    const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: matchMedia('(max-width: 760px)').matches ? 'Añadir una tarea…' : 'Añadir una tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
       onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { const v = e.target.value; e.target.value = ''; agregarHoy(v); } } });
     entrada.value = valor;
     let orden = 0;

@@ -298,7 +298,6 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 @media (max-width: 760px) {
   .agenda { padding: 0 0 var(--tabs-h, 4rem); }
   .ag-caja, .ag-caja.con-detalle { height: 100%; }
-  .ag-lado { bottom: var(--tabs-h, 4rem); }
   .hoy { max-height: calc(100dvh - var(--tabs-h, 4rem) - 7.5rem); padding: 1.2rem 1.1rem 1rem; border-radius: 1.4rem; }
   .hoy .hy-cab { align-items: flex-start; }
   .cierre { bottom: calc(var(--tabs-h, 4rem) + 1rem); max-width: 92vw; }
