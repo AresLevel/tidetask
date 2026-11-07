@@ -11,8 +11,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
-<link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=38">
+<link rel="icon" id="favicon" href="img/app/icono-192.png">
+<link rel="stylesheet" href="agenda.css?v=39">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -278,10 +278,10 @@
              transform: translateY(24px); overflow-y: auto; overscroll-behavior: contain; }
     .panel.abierto { transform: none; }
     /* ajustes: su propia pantalla (como Hoy, Enfoque y Agenda), no una hoja flotante */
-    .panel#ajustes { top: var(--sat); bottom: var(--tabs-h); max-height: none; border-radius: 0; border: 0; padding: 1.3rem 1.2rem 2rem; transform: none; z-index: 24;
+    .panel#ajustes, .panel#musica { top: var(--sat); bottom: var(--tabs-h); max-height: none; border-radius: 0; border: 0; padding: 1.3rem 1.2rem 2rem; transform: none; z-index: 24;
                      background: var(--ag-solid, var(--vidrio)); backdrop-filter: blur(26px); gap: 1.1rem; }
-    .panel#ajustes::before { content: 'Ajustes'; display: block; font-size: 1.7rem; font-weight: 600; letter-spacing: -.01em; color: var(--texto); padding: 0 .1rem .2rem; }
-    body:has(#ajustes.abierto) .barra { display: none; }
+    .panel#ajustes::before, .panel#musica::before { content: attr(data-titulo); display: block; font-size: 1.7rem; font-weight: 600; letter-spacing: -.01em; color: var(--texto); padding: 0 .1rem .2rem; }
+    body:has(#ajustes.abierto, #musica.abierto) .barra { display: none; }
     .toast { bottom: calc(var(--tabs-h) + 1rem); }
     .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--tabs-h); padding-bottom: calc(var(--sab) + var(--kb));
             background: var(--vidrio); border-top: 1px solid var(--borde); backdrop-filter: blur(22px); }
@@ -364,7 +364,7 @@
 </nav>
 
 <!-- Música -->
-<aside class="panel solo-enfoque" id="musica">
+<aside class="panel solo-enfoque" id="musica" data-titulo="Música">
   <h2>Música</h2>
 
   <!-- Sin vincular: reproductor incrustado -->
@@ -379,7 +379,7 @@
 </aside>
 
 <!-- Ajustes -->
-<aside class="panel" id="ajustes">
+<aside class="panel" id="ajustes" data-titulo="Ajustes">
   <div class="grupo">
     <h2>Duraciones</h2>
     <div class="ajuste"><span>Enfoque</span><div class="paso"><button data-acc="paso" data-k="enfoque" data-d="-1">−</button><output data-o="enfoque"></output><button data-acc="paso" data-k="enfoque" data-d="1">+</button></div></div>
@@ -428,8 +428,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=38"></script>
-<script src="agenda.js?v=38"></script>
+<script src="nube.js?v=39"></script>
+<script src="agenda.js?v=39"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -459,6 +459,15 @@
       if (Notification.permission === 'default') await Notification.requestPermission();
       return Notification.permission === 'granted';
     },
+    async programar(lista) {   // deja en el sistema los avisos de tareas (suenan con la app cerrada)
+      const n = this.nativo(); if (!n) return;
+      try {
+        const p = await n.getPending();
+        if (p.notifications.length) await n.cancel({ notifications: p.notifications.map(x => ({ id: x.id })) });
+        if (!lista.length || await this.permiso() !== 'granted') return;
+        await n.schedule({ notifications: lista.map(x => ({ id: x.id, title: x.titulo, body: x.cuerpo, schedule: { at: new Date(x.cuando), allowWhileIdle: true } })) });
+      } catch { /* sin permiso o sin soporte */ }
+    },
     async enviar(titulo, cuerpo) {
       const n = this.nativo();
       try {
@@ -483,7 +492,7 @@
   const DEF = { enfoque: 25, corto: 5, largo: 15, ciclos: 4, autoDescanso: false, autoEnfoque: false, alarma: true,
                 notif: false, recordar: false, anim: 'siempre', fondoDescansoOn: false, fondoDescanso: 'azul', ambiente: 'auto', volumen: .5 };
   let cfg = { ...DEF, ...leer('pomo.cfg', {}) };
-  const guardarCfg = () => poner('pomo.cfg', cfg);
+  const guardarCfg = () => { poner('pomo.cfg', cfg); if (window.Agenda && Agenda.reprogramar) Agenda.reprogramar(); };
   const dur = m => cfg[m] * 60000;
 
   // ============ Estado ============
@@ -659,6 +668,7 @@
   const cv = document.createElement('canvas'); cv.width = cv.height = 64;
   let ultimoIcono = '';
   function pintarIcono() {
+    if (!corriendo) { if (ultimoIcono !== 'quieto') { ultimoIcono = 'quieto'; $('favicon').href = 'img/app/icono-192.png'; } return; }   // en reposo, el icono de la app; el anillo solo mientras corre
     const frac = Math.max(0, Math.min(1, restante / dur(modo))), clave = modo + Math.round(frac * 120);
     if (clave === ultimoIcono) return; ultimoIcono = clave;
     const x = cv.getContext('2d'); x.clearRect(0, 0, 64, 64);
@@ -812,6 +822,18 @@
   new MutationObserver(pintarTabs).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-vista'] });
   new MutationObserver(pintarTabs).observe($('ajustes'), { attributes: true, attributeFilter: ['class'] });
   pintarTabs();
+
+  // botón «atrás» de Android: cierra lo abierto, sube un nivel y, en la pantalla de inicio, minimiza la app
+  (() => {
+    const C = window.Capacitor, A = C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.App;
+    if (!A) return;
+    A.addListener('backButton', () => {
+      if (document.querySelector('.panel.abierto')) { cerrarPaneles(); return; }
+      if (Agenda.atras()) return;
+      if (vista === 'enfoque') { irA('hoy'); return; }
+      A.minimizeApp();
+    });
+  })();
 
   // ============ Ajustes ============
   function pintarAjustes() {

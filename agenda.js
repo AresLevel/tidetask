@@ -197,6 +197,20 @@
     return out;
   };
 
+  /** Avisos futuros (para programarlos en el sistema): los próximos `dias` días, máximo 60. */
+  L.programadas = (e, ahora, dias = 14) => {
+    const out = [];
+    for (const t of e.tareas) {
+      if (t.hecha || !t.recordar.length) continue;
+      const due = L.momento(t); if (due === null) continue;
+      for (const min of t.recordar) {
+        const cuando = due - min * 60000;
+        if (cuando > ahora && cuando <= ahora + dias * DIA_MS) out.push({ clave: `${t.id}|${t.fecha || t.limite}|${t.hora || ''}|${min}`, tarea: t, min, due, cuando });
+      }
+    }
+    return out.sort((a, b) => a.cuando - b.cuando).slice(0, 60);
+  };
+
   // --- fusión con otro dispositivo (conmutativa e idempotente): por elemento gana el `t` mayor; las lápidas borran
   L.fusionar = (a, b, ahora = Date.now()) => {
     a = L.normalizar(a); b = L.normalizar(b);
@@ -344,7 +358,19 @@
   function guardarLocal() { try { localStorage.setItem(CLAVE, JSON.stringify(E)); } catch { /* sin espacio */ } }
   const tarea = id => E.tareas.find(t => t.id === id) || null;
   const lista = id => E.listas.find(l => l.id === id) || E.listas[0];
-  function guardar() { guardarLocal(); programarSync(); refrescarHoy(); }
+  function guardar() { guardarLocal(); programarSync(); refrescarHoy(); programarAvisos(); }
+  // en la app de Android los avisos quedan programados en el sistema y suenan aunque la app esté cerrada
+  let tmProg = 0;
+  function programarAvisos() {
+    if (!g.Avisos || !g.Avisos.nativo || !g.Avisos.nativo()) return;
+    clearTimeout(tmProg);
+    tmProg = setTimeout(() => {
+      const act = !!(g.recordatoriosActivos && g.recordatoriosActivos());
+      const hash = c => { let x = 7; for (let i = 0; i < c.length; i++) x = (x * 31 + c.charCodeAt(i)) % 2147483000; return x + 1; };
+      const lista = act ? L.programadas(E, Date.now()).map(r => ({ id: hash(r.clave), titulo: r.tarea.titulo || 'Recordatorio', cuerpo: `${textoAntes(r.min)}${r.tarea.hora ? ' · ' + r.tarea.hora : ''}`, cuando: r.cuando })) : [];
+      g.Avisos.programar(lista);
+    }, 800);
+  }
 
   // ---------------------------------------------------------------- inicio: la lista de hoy
   function agregarHoy(texto) {
@@ -355,9 +381,19 @@
   /** Rutinas que ya se cumplieron hoy: siguen visibles, tachadas, hasta que pase el día. */
   const rutinasHechasHoy = hoy => E.tareas.filter(t => t.rep && !t.hecha && t.ultima === hoy);
   const vuelve = (t, hoy) => `Hecha hoy · vuelve ${L.etiquetaFecha(t.fecha, hoy).toLowerCase()}`;
+  // widget «Hoy» de la pantalla de inicio (solo en la app de Android)
+  let ultimoWidget = '';
+  function enviarWidget(xs) {
+    const P = g.Capacitor && g.Capacitor.isNativePlatform && g.Capacitor.isNativePlatform() && g.Capacitor.Plugins && g.Capacitor.Plugins.Pomodoro;
+    if (!P || !P.actualizarWidget) return;
+    const datos = JSON.stringify({ total: xs.length, tareas: xs.slice(0, 5).map(t => ({ t: t.titulo || '(sin título)', h: t.hora || '' })) });
+    if (datos === ultimoWidget) return; ultimoWidget = datos;
+    try { P.actualizarWidget(JSON.parse(datos)).catch(() => {}); } catch { /* sin widget */ }
+  }
   function refrescarHoy() {
     const c = refs.hoy; if (!c) return;
     const hoy = L.hoy(), xs = L.filtrar(E, { tipo: 'hoy' }, hoy, '', false);
+    enviarWidget(xs);
     const normales = xs.filter(t => !t.rep), rutinas = xs.filter(t => t.rep), hechasR = rutinasHechasHoy(hoy);
     const hechasHoy = E.tareas.filter(t => (t.hecha && t.hechaEn && L.hoy(new Date(t.hechaEn)) === hoy) || (t.rep && t.ultima === hoy)).length;
     const a = document.activeElement, tecleando = !!(a && c.contains(a) && a.classList.contains('hy-nueva')), valor = tecleando ? a.value : '';
@@ -521,7 +557,7 @@
       av.add(r.clave);
       const t = r.tarea, cuerpo = `${textoAntes(r.min)}${t.hora ? ' · ' + t.hora : ''}`;
       if (g.aviso) g.aviso(`${t.titulo || 'Tarea'}: ${cuerpo}`);
-      if (g.Avisos) g.Avisos.enviar(t.titulo || 'Recordatorio', cuerpo);
+      if (g.Avisos && !g.Avisos.nativo()) g.Avisos.enviar(t.titulo || 'Recordatorio', cuerpo);   // en Android ya está programado en el sistema
     }
     if (typeof g.sonarAlarma === 'function') { try { g.sonarAlarma(); } catch { /* el audio puede no estar activo */ } }
     try { localStorage.setItem('agenda.avisados', JSON.stringify([...av].slice(-300))); } catch { /* sin espacio */ }
@@ -1200,10 +1236,21 @@
       if (alCambiarActiva) alCambiarActiva(Agenda.activaTitulo());
       addEventListener('keydown', e => { if (abierta && e.key === 'Escape' && !e.defaultPrevented) { if (ui.sel) seleccionar(ui.sel); else cerrar(); } });
       addEventListener('online', () => sincronizar(false));
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) { refrescarHoy(); revisarRecordatorios(); sincronizar(false); } });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) { refrescarHoy(); revisarRecordatorios(); sincronizar(false); programarAvisos(); } });
       setInterval(revisarRecordatorios, 20000); revisarRecordatorios();
       setInterval(() => sincronizar(false), 90000);
       sincronizar(false);
+    },
+    reprogramar: programarAvisos,
+    /** Botón «atrás» del teléfono: devuelve true si la agenda lo atendió (cerró algo o volvió un nivel). */
+    atras() {
+      if (!abierta) return false;
+      if (document.getElementById('agMenuCtx')) { cerrarMenuCtx(); return true; }
+      if (ui.sel) { seleccionar(ui.sel); return true; }
+      if (matchMedia('(max-width: 760px)').matches && !refs.caja.classList.contains('en-menu')) {
+        ui.q = ''; refs.buscar.value = ''; ui.renombrar = false; ui.personalizar = false; refs.caja.classList.add('en-menu'); todo(); return true;
+      }
+      cerrar(); return true;
     },
     abrir: () => abrir('menu'), cerrar, abierta: () => abierta,
     /** Abre la agenda con el detalle de una tarea. */
