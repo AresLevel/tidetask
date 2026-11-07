@@ -422,3 +422,6 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 .ag-grupo-cab.guia-antes::before, .ag-grupo-cab.guia-despues::after { content: ''; position: absolute; left: .4rem; right: .4rem; height: 3px; border-radius: 3px; background: var(--acento); box-shadow: 0 0 10px var(--acento); }
 .ag-grupo-cab.guia-antes::before { top: -3px; } .ag-grupo-cab.guia-despues::after { bottom: -3px; }
 .ag-grupo-cab { position: relative; }
+
+/* con el teclado abierto (teléfono) no sube «Mostrar completadas» ni el pie de la lista */
+body.teclado .ag-pie { display: none; }
