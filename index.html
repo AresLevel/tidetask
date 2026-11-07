@@ -12,8 +12,8 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="img/app/icono-192.png">
-<link rel="stylesheet" href="agenda.css?v=42">
-<link rel="stylesheet" href="acuarela.css?v=42">
+<link rel="stylesheet" href="agenda.css?v=43">
+<link rel="stylesheet" href="acuarela.css?v=43">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -428,8 +428,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=42"></script>
-<script src="agenda.js?v=42"></script>
+<script src="nube.js?v=43"></script>
+<script src="agenda.js?v=43"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -689,7 +689,7 @@
     const s = Math.ceil(restante / 1000);
     const txt = pad(Math.floor(s / 60)) + ':' + pad(s % 60);
     reloj.textContent = txt;
-    document.title = (corriendo ? txt + ' · ' : '') + (modo === 'enfoque' ? 'Enfoque' : 'Descanso');
+    document.title = (corriendo ? txt + ' · ' : '') + (corriendo || vista === 'enfoque' ? (modo === 'enfoque' ? 'Enfoque' : 'Descanso') : 'TideTask');
     $('ciclo').textContent = `Pomodoro ${pomodoro} de ${cfg.ciclos} · hoy ${pomosHoy()}`;
     $('hecha').hidden = !(modo === 'enfoque' && Agenda.activaTitulo());
     pintarPildora(txt);
