@@ -266,3 +266,12 @@ body:has(#ajustes.abierto) .barra { display: none; }
   .ag-pie { padding-bottom: calc(.9rem + var(--sab)); }
   .ag-caja::before { bottom: calc(-1 * var(--kb)); }
 }
+
+/* ---- Asa para mover listas (teléfono): arrastra al instante, sin mantener pulsado ---- */
+.ag-asa { display: none; touch-action: none; -webkit-user-select: none; user-select: none; cursor: grab; }
+@media (max-width: 760px) {
+  .ag-caja.en-menu .ag-nav[data-lid] .ag-asa { display: grid; position: absolute; top: .55rem; right: .6rem; z-index: 2; width: 2.9rem; height: 2.9rem; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, .34); color: #fff; backdrop-filter: none; }
+  .ag-asa svg.ag-ico { width: 1.25rem; height: 1.25rem; }
+  .ag-caja.en-menu .ag-nav.arrastrando { z-index: 8; transform-origin: center; box-shadow: 0 14px 36px rgba(0, 0, 0, .5), 0 0 0 2px var(--acento); }
+  .ag-caja.en-menu .ag-nav.arrastrando .ag-asa { background: var(--acento); color: var(--acento-texto); }
+}

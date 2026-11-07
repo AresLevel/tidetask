@@ -906,11 +906,12 @@
     const cu = L.conteos(E), v = ui.vista;
     const item = (tipo, nombre, icono, n, extra = {}) => { let largo = false, tm = 0, sx = 0, sy = 0;
       const esLista = tipo === 'lista';
-      let alzada = false, movio = false, destino = null, pid = null, el = null;
+      let alzada = false, movio = false, destino = null, pid = null, el = null, raf = 0, ultimoY = 0, sc0 = 0;
+      const cont = () => refs.lado.parentElement;
       const hermanas = () => [...refs.lado.querySelectorAll('.ag-nav[data-lid], .ag-grupo-cab[data-gid]')].filter(x => x !== el && x.offsetParent);
       const quitarGuia = () => refs.lado.querySelectorAll('.guia-antes,.guia-despues,.guia-dentro').forEach(x => x.classList.remove('guia-antes', 'guia-despues', 'guia-dentro'));
       const soltarLista = e => {
-        clearTimeout(tm);
+        clearTimeout(tm); cancelAnimationFrame(raf);
         if (!alzada) return;
         alzada = false; quitarGuia(); el.classList.remove('arrastrando'); el.style.transform = '';
         try { el.releasePointerCapture(pid); } catch { /* ya liberada */ }
@@ -920,34 +921,55 @@
         else if (movio && destino) colocarLista(lista(extra.id), destino.id, destino.despues);
         else if (!movio) menuLista(lista(extra.id), sx, sy);
       };
+      // mover(y): coloca la lista levantada bajo el dedo y calcula dónde caería (antes, después o dentro de un grupo)
+      const mover = y => {
+        const dy = y - sy + (cont().scrollTop - sc0); if (Math.abs(dy) > 8) movio = true;
+        el.style.transform = `translateY(${dy}px) scale(1.03)`;
+        if (!movio) return;
+        quitarGuia();
+        const otras = hermanas(); if (!otras.length) { destino = null; return; }
+        const sobre = otras.find(x => { const r = x.getBoundingClientRect(); return x.dataset.gid && y > r.top + r.height * .25 && y < r.bottom - r.height * .25; });
+        if (sobre) { sobre.classList.add('guia-dentro'); destino = { id: sobre.dataset.gid, grupo: true }; return; }   // soltar sobre un grupo: entra en él
+        const sig = otras.filter(x => x.dataset.lid).find(x => { const r = x.getBoundingClientRect(); return y < r.top + r.height / 2; });
+        const ref = sig || otras.filter(x => x.dataset.lid).pop();
+        if (!ref) { destino = null; return; }
+        ref.classList.add(sig ? 'guia-antes' : 'guia-despues');
+        destino = { id: ref.dataset.lid, despues: !sig };
+      };
+      // al acercar el dedo al borde de arriba o de abajo, la pantalla se desplaza sola para llegar más lejos
+      const auto = () => {
+        if (!alzada) return;
+        const c = cont(), r = c.getBoundingClientRect(), borde = 120; let v = 0;
+        if (ultimoY < r.top + borde) v = -Math.ceil((r.top + borde - ultimoY) / 5);
+        else if (ultimoY > r.bottom - borde) v = Math.ceil((ultimoY - (r.bottom - borde)) / 5);
+        if (v) { const antes = c.scrollTop; c.scrollTop += Math.max(-26, Math.min(26, v)); if (c.scrollTop !== antes) mover(ultimoY); }
+        raf = requestAnimationFrame(auto);
+      };
+      const levantar = () => {
+        largo = alzada = true; cerrarMenuCtx(); el.classList.add('arrastrando'); try { el.setPointerCapture(pid); } catch { /* sin captura */ }
+        sc0 = cont().scrollTop; ultimoY = sy; cancelAnimationFrame(raf); raf = requestAnimationFrame(auto);
+        if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
+      };
       const pulsacion = !esLista ? {} : {
         'data-lid': extra.id,
         onpointerdown: e => { if (e.pointerType === 'mouse' && e.button !== 0) return; el = e.currentTarget; largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
           tm = setTimeout(() => {   // mantener pulsada: la lista se levanta; si se arrastra se reordena, si se suelta quieta abre su menú
-            largo = alzada = true; cerrarMenuCtx(); el.classList.add('arrastrando'); try { el.setPointerCapture(pid); } catch { /* sin captura */ }
-            if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
+            levantar();
           }, 450); },
         onpointermove: e => {
           if (!alzada) { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(tm); return; }
           e.preventDefault();
-          const dy = e.clientY - sy; if (Math.abs(dy) > 8) movio = true;
-          el.style.transform = `translateY(${dy}px) scale(1.03)`;
-          if (!movio) return;
-          quitarGuia();
-          const otras = hermanas(); if (!otras.length) { destino = null; return; }
-          const sobre = otras.find(x => { const r = x.getBoundingClientRect(); return x.dataset.gid && e.clientY > r.top + r.height * .25 && e.clientY < r.bottom - r.height * .25; });
-          if (sobre) { sobre.classList.add('guia-dentro'); destino = { id: sobre.dataset.gid, grupo: true }; return; }   // soltar sobre un grupo: entra en él
-          const sig = otras.filter(x => x.dataset.lid).find(x => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
-          const ref = sig || otras.filter(x => x.dataset.lid).pop();
-          if (!ref) { destino = null; return; }
-          ref.classList.add(sig ? 'guia-antes' : 'guia-despues');
-          destino = { id: ref.dataset.lid, despues: !sig };
+          ultimoY = e.clientY; mover(ultimoY);
         },
         onpointerup: soltarLista, onpointercancel: soltarLista, ontouchmove: e => { if (alzada && e.cancelable) e.preventDefault(); }, onselectstart: e => e.preventDefault(),
         oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
       };
       return h('button', { style: esLista ? `--foto:url(img/${paisajeDe(lista(extra.id))}.jpg)` : null, class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
       onclick: () => { if (largo) return; ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('en-menu'); todo(); } },
+      esLista && h('span', { class: 'ag-asa', role: 'button', 'aria-label': 'Mover «' + nombre + '»',
+        onpointerdown: e => { if (e.pointerType === 'mouse' && e.button !== 0) return; e.stopPropagation(); e.preventDefault();
+          el = e.currentTarget.parentElement; pid = e.pointerId; sx = e.clientX; sy = e.clientY; movio = false; destino = null; clearTimeout(tm); levantar(); },
+        onclick: e => e.stopPropagation() }, ico('todas')),
       extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n)); };
     c.textContent = '';
     c.append(...[
