@@ -2,7 +2,7 @@
 
 TideTask: tareas, rutinas y un temporizador de enfoque (técnica Pomodoro) con fondos de acuarela, sonidos ambientales y una agenda tranquila.
 
-**Demo:** https://areslevel.github.io/pomodoro/
+**Demo:** https://areslevel.github.io/tidetask/
 
 ## Qué tiene
 - Temporizador de enfoque y descansos con duraciones personalizables.
