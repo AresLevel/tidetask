@@ -275,3 +275,16 @@ body:has(#ajustes.abierto) .barra { display: none; }
   .ag-caja.en-menu .ag-nav.arrastrando { z-index: 8; transform-origin: center; box-shadow: 0 14px 36px rgba(0, 0, 0, .5), 0 0 0 2px var(--acento); }
   .ag-caja.en-menu .ag-nav.arrastrando .ag-asa { background: var(--acento); color: var(--acento-texto); }
 }
+
+/* ---- Guía de colocación al arrastrar (teléfono): un hilo de luz entre postales ---- */
+@media (max-width: 760px) {
+  .ag-caja.en-menu .ag-nav[data-lid] { overflow: visible; }
+  .ag-caja.en-menu .ag-nav.guia-antes::before, .ag-caja.en-menu .ag-nav.guia-despues::after {
+    content: ''; position: absolute; left: 1.1rem; right: 1.1rem; height: 2px; border-radius: 2px; z-index: 3;
+    background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .16), 0 0 10px 1px rgba(255, 255, 255, .75); animation: guia-late 1s ease-in-out infinite;
+  }
+  .ag-caja.en-menu .ag-nav.guia-antes::before { top: -.38rem; }
+  .ag-caja.en-menu .ag-nav.guia-despues::after { bottom: -.38rem; }
+  .ag-caja.en-menu .ag-nav.guia-dentro { box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 0 18px rgba(255, 255, 255, .45); }
+}
+@keyframes guia-late { 50% { opacity: .55; } }
