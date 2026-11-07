@@ -253,3 +253,8 @@ body:has(#ajustes.abierto) .barra { display: none; }
   .ag-caja, .ag-caja.con-detalle { overflow: visible; }
   .ag-caja::before { inset: calc(-1 * var(--sat)) calc(-1 * env(safe-area-inset-right, 0px)) calc(-1 * var(--tabs-h)) calc(-1 * env(safe-area-inset-left, 0px)); }
 }
+
+/* la X de Ajustes en el teléfono baja de la barra de estado */
+@media (max-width: 760px) {
+  .panel#ajustes .panel-x, .panel#musica .panel-x { top: calc(var(--sat) + .7rem); right: calc(.9rem + env(safe-area-inset-right, 0px)); }
+}
