@@ -1221,7 +1221,7 @@
         ),
       refs.nueva = h('div', { class: 'ag-nueva' }, h('span', { class: 'ag-mas' }, ico('mas')), entrada), refs.lista, refs.pie);
     refs.detalle = h('aside', { class: 'ag-detalle' });
-    refs.caja = h('div', { class: 'ag-caja', onclick: e => e.stopPropagation() },
+    refs.caja = h('div', { class: 'ag-caja' },
       h('aside', { class: 'ag-lado' }, h('div', { class: 'ag-lado-tit' }, h('b', null, 'Agenda'), h('small', null, textoFecha())), h('div', { class: 'ag-buscar' }, ico('buscar'), refs.buscar), refs.lado), refs.centro, refs.detalle);
     refs.raiz.append(refs.caja);
     if (g.Nube) Nube.alCambiar = () => { if (abierta) lado(); };
