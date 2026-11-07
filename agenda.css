@@ -60,8 +60,8 @@ body[data-tono="oscuro"] { --ag-bg: rgba(255,255,255,.8); --ag-solid: rgba(250,2
   background: var(--ag-solid); border: 1px solid var(--borde); box-shadow: 0 14px 40px rgba(0,0,0,.28); animation: ag-entra .2s ease both; }
 .ag-nube-menu h4 { margin: 0; font-size: .85rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
 .ag-nube-menu p { margin: 0; color: var(--texto-suave); font-size: .76rem; }
-.ag-nube-menu .ag-chip.peligro { align-self: flex-start; background: none; border-color: transparent; padding-inline: 0; color: var(--texto-suave); font-size: .72rem; min-height: 0; text-decoration: underline; }
-.ag-nube-menu .ag-chip.peligro.on { color: var(--vencida); }
+.ag-nube-menu button.ag-chip.peligro, .ag-nube-menu button.ag-chip.peligro.on { align-self: flex-start; background: none; border: 0; border-radius: 0; padding: 0; min-height: 0; color: var(--texto-suave); font-size: .72rem; text-align: left; white-space: normal; text-decoration: underline; }
+.ag-nube-menu button.ag-chip.peligro.on { color: var(--vencida); font-weight: 500; text-decoration: none; }
 .ag-nube-menu .ag-btn:disabled { opacity: .6; cursor: default; }
 
 /* ---- centro ---- */
