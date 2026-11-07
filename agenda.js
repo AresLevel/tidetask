@@ -671,6 +671,17 @@
     ui.vista = { tipo: 'lista', id: l.id }; ui.q = ''; if (refs.buscar) refs.buscar.value = '';
     ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('en-menu');
   }
+  /** Coloca un menú flotante junto al dedo: hacia abajo si cabe; si no, hacia arriba; nunca bajo la barra inferior ni los bordes. */
+  function situarMenu(m, x, y) {
+    const r = m.getBoundingClientRect(), margen = 10, tabs = document.querySelector('.tabs');
+    const sombra = tabs && tabs.offsetParent !== null ? tabs.offsetHeight : 0;
+    const fondo = innerHeight - sombra - margen;
+    let top = y + 6 + r.height <= fondo ? y + 6 : y - 6 - r.height;   // abajo si cabe, si no arriba del dedo
+    top = Math.max(margen, Math.min(top, fondo - r.height));
+    m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
+    m.style.top = top + 'px';
+    m.dataset.lado = top < y ? 'arriba' : 'abajo';
+  }
   const cerrarMenuCtx = () => { const m = document.getElementById('agMenuCtx'); if (m) m.remove(); };
   function menuLista(l, x, y) {
     cerrarMenuCtx();
@@ -686,9 +697,7 @@
       l.id !== 'inbox' && eliminar,
       h('div', { class: 'ag-ctx-pista' }, 'Para cambiar su lugar o meterla en un grupo, mantenla pulsada y arrástrala'));
     refs.raiz.append(m);
-    const r = m.getBoundingClientRect(), margen = 10;
-    m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
-    m.style.top = Math.max(margen, Math.min(y, innerHeight - r.height - margen)) + 'px';
+    situarMenu(m, x, y);
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
   }
   const grupoPorId = id => E.grupos.find(g => g.id === id) || null;
@@ -968,9 +977,7 @@
       eliminar,
       h('div', { class: 'ag-ctx-pista' }, 'Mantenlo pulsado y arrástralo para cambiar su lugar'));
     refs.raiz.append(m);
-    const r = m.getBoundingClientRect(), margen = 10;
-    m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
-    m.style.top = Math.max(margen, Math.min(y, innerHeight - r.height - margen)) + 'px';
+    situarMenu(m, x, y);
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
   }
   function hace(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'ahora mismo' : m < 60 ? `hace ${m} min` : `hace ${Math.round(m / 60)} h`; }
