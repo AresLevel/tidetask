@@ -585,6 +585,14 @@
       h('div', { class: 'ag-cuerpo' }, h('div', { class: 'ag-titulo' }, t.titulo || '(sin título)'), metas.length > 0 && h('div', { class: 'ag-metas' }, metas)),
       !t.hecha && h('button', { class: 'ag-play', dataset: { tip: 'Enfocar en esta tarea' }, 'aria-label': 'Enfocar en esta tarea', onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play'))), t.id);
   }
+  /** Título de la vista; en una lista lleva su icono (o su color) delante. */
+  function pintarTitulo() {
+    const v = ui.vista, t = refs.titulo; t.textContent = '';
+    if (!ui.q && v.tipo === 'lista') {
+      const l = lista(v.id);
+      t.append(l.icono && ICO['i_' + l.icono] ? h('span', { class: 'ag-h-ico', style: `color:${l.color}` }, ico('i_' + l.icono)) : h('i', { class: 'ag-punto grande', style: `background:${l.color}` }), h('span', null, l.nombre));
+    } else t.textContent = tituloVista();
+  }
   const TITULOS = { hoy: 'Hoy', proximas: 'Próximas', todas: 'Todas las tareas', rutinas: 'Rutinas', hechas: 'Completadas', historial: 'Historial' };
   function tituloVista() {
     if (ui.q) return `Búsqueda: «${ui.q}»`;
@@ -598,7 +606,7 @@
     if (!ui.q && ui.vista.tipo === 'historial') return historialUI();
     if (!ui.q && ui.vista.tipo === 'rutinas') return rutinasUI();
     const hoy = L.hoy(), xs = L.filtrar(E, ui.vista, hoy, ui.q, ui.verHechas);
-    refs.titulo.textContent = tituloVista();
+    pintarTitulo();
     refs.cuenta.textContent = xs.length ? `${xs.length} ${xs.length === 1 ? 'tarea' : 'tareas'}` : '';
     c.textContent = '';
     if (!ui.q && ui.vista.tipo === 'lista' && ui.personalizar) c.append(estiloLista(lista(ui.vista.id)));
@@ -705,7 +713,7 @@
       oninput: () => {   // el nombre se actualiza en vivo: título de arriba y menú
         const n = nombre.value.trim(); if (!n) return;
         l.nombre = n; l.t = Date.now(); guardar();
-        if (ui.vista.tipo === 'lista' && ui.vista.id === l.id && !ui.q) refs.titulo.textContent = n;
+        if (ui.vista.tipo === 'lista' && ui.vista.id === l.id && !ui.q) pintarTitulo();
         lado();
       },
       onchange: () => { if (!nombre.value.trim()) nombre.value = l.nombre; } });

@@ -399,3 +399,9 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
   .ag-lado .ag-sec-tit { padding-inline: .4rem; }
   .ag-mini.menu { display: grid; }
 }
+
+/* ---- Icono delante del título de una lista ---- */
+.ag-h:has(.ag-h-ico, .ag-punto) { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+.ag-h > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ag-h-ico { display: inline-grid; place-items: center; flex: none; }
+.ag-h-ico svg.ag-ico { width: 1.5rem; height: 1.5rem; }
