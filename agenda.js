@@ -368,12 +368,12 @@
         (t.pomos > 0 || t.est > 0) && h('span', { class: 'hy-meta' }, `${t.pomos}${t.est ? ' de ' + t.est : ''} pomodoros`),
         ...t.etiquetas.map(x => h('span', { class: 'hy-meta' }, '#' + x)),
       ].filter(Boolean);
-      return h('div', { class: 'hy-fila' + (activa === t.id ? ' activa' : '') + (recien === t.id ? ' nueva' : ''), style: `--i:${orden++}`, role: 'button', tabIndex: 0, onclick: () => Agenda.abrirTarea(t.id),
+      return deslizable(h('div', { class: 'hy-fila' + (activa === t.id ? ' activa' : '') + (recien === t.id ? ' nueva' : ''), style: `--i:${orden++}`, role: 'button', tabIndex: 0, onclick: () => Agenda.abrirTarea(t.id),
           onkeydown: e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); Agenda.abrirTarea(t.id); } } },
         h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Completar ' + (t.titulo || 'tarea'), onclick: e => { e.stopPropagation(); completar(e.currentTarget, t.id); } }),
         insignia(t),
         h('div', { class: 'hy-cuerpo' }, h('div', { class: 'hy-t' }, t.titulo || '(sin título)'), metas.length > 0 && h('div', { class: 'hy-metas' }, metas)),
-        h('button', { class: 'hy-play', 'aria-label': 'Enfocar en ' + (t.titulo || 'esta tarea'), onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play')));
+        h('button', { class: 'hy-play', 'aria-label': 'Enfocar en ' + (t.titulo || 'esta tarea'), onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play'))), t.id);
     };
     c.textContent = '';
     c.append(
@@ -412,6 +412,52 @@
     if (activa === id) fijarActiva(null);
     if (ui.sel === id) ui.sel = null;
     guardar(); todo();
+  }
+  // ---- deslizar una tarea a la derecha para eliminarla (con botón de confirmar)
+  const ABIERTO = 104;   // px que se descubren al dejar la fila abierta
+  let filaAbierta = null;
+  function cerrarDeslizada(f) {
+    if (!f) return;
+    f.classList.remove('desl-abierta', 'desl-arrastra'); f.style.removeProperty('--dx'); if (filaAbierta === f) filaAbierta = null;
+  }
+  function deslizable(f, id) {
+    const fondo = h('div', { class: 'desl-fondo' },
+      h('button', { class: 'desl-borrar', 'aria-label': 'Confirmar: eliminar tarea', onclick: e => { e.stopPropagation(); cerrarDeslizada(f); eliminarTarea(id); } }, ico('i_limpieza'), h('span', null, 'Eliminar')));
+    f.prepend(fondo);
+    let x0 = 0, y0 = 0, base = 0, activo = false, mover = false, pid = null;
+    const poner = dx => f.style.setProperty('--dx', Math.max(0, Math.min(dx, ABIERTO + 36)) + 'px');
+    f.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.target.closest('.desl-borrar')) return;
+      if (filaAbierta && filaAbierta !== f) cerrarDeslizada(filaAbierta);
+      x0 = e.clientX; y0 = e.clientY; base = f.classList.contains('desl-abierta') ? ABIERTO : 0; activo = true; mover = false; pid = e.pointerId;
+    });
+    f.addEventListener('pointermove', e => {
+      if (!activo || e.pointerId !== pid) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      if (!mover) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { activo = false; return; }   // es un desplazamiento vertical
+        if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy)) return;
+        mover = true; f.classList.add('desl-arrastra'); try { f.setPointerCapture(pid); } catch { /* sin captura */ }
+      }
+      poner(base + dx);
+    });
+    const soltar = e => {
+      if (!activo || e.pointerId !== pid) return; activo = false;
+      if (!mover) return;
+      f.dataset.arrastro = '1'; setTimeout(() => { delete f.dataset.arrastro; }, 60);
+      const dx = parseFloat(f.style.getPropertyValue('--dx')) || 0;
+      f.classList.remove('desl-arrastra');
+      if (dx > ABIERTO * 0.55) { f.classList.add('desl-abierta'); f.style.setProperty('--dx', ABIERTO + 'px'); filaAbierta = f; }
+      else cerrarDeslizada(f);
+    };
+    f.addEventListener('pointerup', soltar); f.addEventListener('pointercancel', soltar);
+    // un toque sobre una fila abierta solo la cierra; y tras arrastrar no se abre la tarea
+    f.addEventListener('click', e => {
+      if (f.dataset.arrastro) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+      if (f.classList.contains('desl-abierta') && !e.target.closest('.desl-borrar')) { e.stopImmediatePropagation(); e.preventDefault(); cerrarDeslizada(f); }
+    }, true);
+    return f;
   }
   function alternarHecha(id) {
     const t = tarea(id); if (!t) return;
@@ -533,11 +579,11 @@
       (t.est > 0 || t.pomos > 0) && h('span', { class: 'ag-meta' }, `${t.pomos}${t.est ? '/' + t.est : ''} pomodoros`),
       ...t.etiquetas.map(x => h('span', { class: 'ag-meta etq' }, '#' + x)),
     ].filter(Boolean);
-    return h('div', { class: 'ag-fila' + (t.hecha ? ' hecha' : '') + (ui.sel === t.id ? ' sel' : '') + (activa === t.id ? ' activa' : '') + (recien === t.id ? ' nueva' : ''), onclick: () => seleccionar(t.id) },
+    return deslizable(h('div', { class: 'ag-fila' + (t.hecha ? ' hecha' : '') + (ui.sel === t.id ? ' sel' : '') + (activa === t.id ? ' activa' : '') + (recien === t.id ? ' nueva' : ''), onclick: () => seleccionar(t.id) },
       h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Completar tarea', onclick: e => { e.stopPropagation(); completar(e.currentTarget, t.id); } }),
       insignia(t),
       h('div', { class: 'ag-cuerpo' }, h('div', { class: 'ag-titulo' }, t.titulo || '(sin título)'), metas.length > 0 && h('div', { class: 'ag-metas' }, metas)),
-      !t.hecha && h('button', { class: 'ag-play', dataset: { tip: 'Enfocar en esta tarea' }, 'aria-label': 'Enfocar en esta tarea', onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play')));
+      !t.hecha && h('button', { class: 'ag-play', dataset: { tip: 'Enfocar en esta tarea' }, 'aria-label': 'Enfocar en esta tarea', onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play'))), t.id);
   }
   const TITULOS = { hoy: 'Hoy', proximas: 'Próximas', todas: 'Todas las tareas', rutinas: 'Rutinas', hechas: 'Completadas', historial: 'Historial' };
   function tituloVista() {
