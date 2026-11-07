@@ -859,7 +859,7 @@
     refs.lado = h('div', { class: 'ag-lado-cont' });
     refs.titulo = h('h2', { class: 'ag-h' }); refs.cuenta = h('span', { class: 'ag-cuenta' }); refs.acciones = h('div', { class: 'ag-acciones' });
     refs.lista = h('div', { class: 'ag-lista' }); refs.pie = h('div', { class: 'ag-pie' });
-    const entrada = h('input', { type: 'text', class: 'ag-input grande', placeholder: 'Añadir tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, onkeydown: e => {
+    const entrada = h('input', { type: 'text', class: 'ag-input grande', placeholder: matchMedia('(max-width: 760px)').matches ? 'Añadir tarea…' : 'Añadir tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, onkeydown: e => {
       e.stopPropagation();
       if (e.key === 'Enter') { nuevaDesdeTexto(e.target.value); e.target.value = ''; }
     } });

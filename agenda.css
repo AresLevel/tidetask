@@ -1,6 +1,6 @@
 /* Agenda (tareas). Usa las variables de color de cada escena definidas en index.html. */
-:root { --ag-bg: rgba(18,20,30,.66); --p1: #4f8fe0; --p2: #f0a93b; --p3: #e8553d; --vencida: #e8553d; }
-body[data-tono="oscuro"] { --ag-bg: rgba(255,255,255,.8); --vencida: #c23a22; }
+:root { --ag-bg: rgba(18,20,30,.66); --ag-solid: rgba(14,17,26,.97); --p1: #4f8fe0; --p2: #f0a93b; --p3: #e8553d; --vencida: #e8553d; }
+body[data-tono="oscuro"] { --ag-bg: rgba(255,255,255,.8); --ag-solid: rgba(250,250,252,.97); --vencida: #c23a22; }
 
 .agenda {
   position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1.2rem;
@@ -143,12 +143,12 @@ body[data-tono="oscuro"] { --ag-bg: rgba(255,255,255,.8); --vencida: #c23a22; }
 /* ---- pantallas medianas y móviles ---- */
 @media (max-width: 1100px) {
   .ag-caja.con-detalle { grid-template-columns: 15.5rem minmax(0, 1fr); }
-  .ag-caja.con-detalle .ag-detalle { position: absolute; top: 0; right: 0; bottom: 0; width: min(24rem, 100%); background: var(--ag-bg); backdrop-filter: blur(26px); box-shadow: -18px 0 40px rgba(0,0,0,.2); z-index: 3; }
+  .ag-caja.con-detalle .ag-detalle { position: absolute; top: 0; right: 0; bottom: 0; width: min(24rem, 100%); background: var(--ag-solid); backdrop-filter: blur(26px); box-shadow: -18px 0 40px rgba(0,0,0,.2); z-index: 3; }
 }
 @media (max-width: 760px) {
   .agenda { padding: 0; }
   .ag-caja, .ag-caja.con-detalle { grid-template-columns: minmax(0, 1fr); border-radius: 0; height: 100%; }
-  .ag-lado { position: absolute; top: 0; left: 0; bottom: 0; width: min(17rem, 85%); z-index: 4; background: var(--ag-bg); backdrop-filter: blur(26px); transform: translateX(-102%); transition: transform .25s; }
+  .ag-lado { position: absolute; top: 0; left: 0; bottom: 0; width: min(17rem, 85%); z-index: 4; background: var(--ag-solid); backdrop-filter: blur(26px); transform: translateX(-102%); transition: transform .25s; }
   .ag-caja.ver-lado .ag-lado { transform: none; box-shadow: 18px 0 40px rgba(0,0,0,.25); }
   .ag-mini.menu { display: grid; }
   .ag-centro { padding: 1rem .9rem 0; }
