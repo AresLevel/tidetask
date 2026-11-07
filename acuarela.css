@@ -235,3 +235,8 @@ body.noche .ag-caja.en-menu .ag-nav[data-lid] { filter: brightness(.82); }
 }
 
 body:has(#ajustes.abierto) .barra { display: none; }
+
+/* botón de cerrar: siempre por encima de la cabecera y bien visible */
+.panel-x { z-index: 5; width: 2.6rem; height: 2.6rem; opacity: 1; border: 1.5px solid color-mix(in srgb, var(--texto) 50%, transparent); background: color-mix(in srgb, var(--papel) 45%, transparent); text-shadow: none; filter: drop-shadow(0 0 4px var(--halo)); }
+.panel#ajustes .panel-x { top: .9rem; right: .9rem; }
+.panel-x:hover { background: var(--acento); color: var(--acento-texto); }
