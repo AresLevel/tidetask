@@ -707,7 +707,7 @@
     const c = refs.lado; if (!c) return;
     const cu = L.conteos(E), v = ui.vista;
     const item = (tipo, nombre, icono, n, extra = {}) => h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''),
-      onclick: () => { ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; todo(); } },
+      onclick: () => { ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado'); todo(); } },
       extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n));
     c.textContent = '';
     c.append(...[
@@ -864,7 +864,7 @@
       if (e.key === 'Enter') { nuevaDesdeTexto(e.target.value); e.target.value = ''; }
     } });
     refs.entrada = entrada;
-    refs.centro = h('section', { class: 'ag-centro' },
+    refs.centro = h('section', { class: 'ag-centro', onclick: e => { if (refs.caja.classList.contains('ver-lado') && !e.target.closest('.ag-mini.menu')) refs.caja.classList.remove('ver-lado'); } },
       h('div', { class: 'ag-cab' }, h('button', { class: 'ag-mini menu', 'aria-label': 'Menú', onclick: () => { refs.caja.classList.toggle('ver-lado'); } }, ico('todas')), refs.titulo, refs.cuenta, h('span', { style: 'flex:1' }), refs.acciones,
         h('button', { class: 'ag-mini', 'aria-label': 'Cerrar agenda', onclick: cerrar }, ico('cerrar'))),
       refs.nueva = h('div', { class: 'ag-nueva' }, h('span', { class: 'ag-mas' }, ico('mas')), entrada), refs.lista, refs.pie);
@@ -877,7 +877,7 @@
   }
 
   function abrir() {
-    abierta = true; refs.raiz.classList.add('abierto'); document.body.classList.add('agenda-abierta');
+    abierta = true; refs.caja.classList.remove('ver-lado'); refs.raiz.classList.add('abierto'); document.body.classList.add('agenda-abierta');
     todo(); sincronizar(false);
     if (matchMedia('(pointer: fine)').matches) setTimeout(() => refs.entrada.focus(), 200);
   }
