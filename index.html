@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=25">
+<link rel="stylesheet" href="agenda.css?v=26">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -417,8 +417,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=25"></script>
-<script src="agenda.js?v=25"></script>
+<script src="nube.js?v=26"></script>
+<script src="agenda.js?v=26"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -483,6 +483,10 @@
 
   // ============ Fondos ============
   const url = id => `img/${id}.jpg`;
+  // imágenes propias: vertical para el teléfono (pantalla alta), horizontal para el resto
+  const retrato = matchMedia('(orientation: portrait) and (max-width: 900px)');
+  const urlFondo = id => retrato.matches ? `img/${id}-v.jpg` : url(id);
+  retrato.addEventListener('change', () => ponerFondo(fondoActual.id, false));
   function ponerFondo(id, elegir = true) {
     const tema = FONDOS.find(f => f.id === id) || FONDOS[0];
     fondoActual = tema;
@@ -494,7 +498,7 @@
     document.body.dataset.tono = tema.tono;
     const capas = [$('f1'), $('f2')];
     const nueva = capas[capa ^= 1], vieja = capas[capa ^ 1];
-    nueva.style.backgroundImage = `url(${url(tema.id)})`;
+    nueva.style.backgroundImage = `url(${urlFondo(tema.id)})`;
     nueva.classList.add('activo'); vieja.classList.remove('activo');
     document.querySelectorAll('#selector button, #fondoSel button').forEach(b => b.classList.toggle('on', b.dataset.id === tema.id));
     if (corriendo && modo === 'enfoque') ambiente(true);   // la escena puede cambiar el sonido sugerido

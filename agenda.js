@@ -702,7 +702,13 @@
     const cambiar = campos => { Object.assign(l, campos, { t: Date.now() }); guardar(); todo(); };
     const nombre = h('input', { type: 'text', class: 'ag-input', id: 'agNombreLista', value: l.nombre, maxLength: 40, placeholder: 'Nombre de la lista', disabled: l.id === 'inbox',
       onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter') nombre.blur(); },
-      onchange: () => { const n = nombre.value.trim(); if (n && n !== l.nombre) cambiar({ nombre: n }); else nombre.value = l.nombre; } });
+      oninput: () => {   // el nombre se actualiza en vivo: título de arriba y menú
+        const n = nombre.value.trim(); if (!n) return;
+        l.nombre = n; l.t = Date.now(); guardar();
+        if (ui.vista.tipo === 'lista' && ui.vista.id === l.id && !ui.q) refs.titulo.textContent = n;
+        lado();
+      },
+      onchange: () => { if (!nombre.value.trim()) nombre.value = l.nombre; } });
     if (ui.enfocarNombre) { ui.enfocarNombre = false; setTimeout(() => { nombre.focus(); nombre.select(); }, 60); }
     return h('div', { class: 'ag-estilo' },
       h('div', { class: 'ag-campo' }, h('label', { for: 'agNombreLista' }, 'Nombre'), nombre),

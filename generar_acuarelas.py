@@ -1,11 +1,17 @@
 """Genera los fondos en acuarela (SVG con filtros) en img/. Uso: python generar_acuarelas.py
 Técnica: lavados translúcidos que se multiplican (como veladuras), bordes que se corren por
 desplazamiento de turbulencia, pigmento granulado y textura de papel por encima."""
-import math, os, random
+import math, os, random, sys
 
 W, H = 1920, 1080
+# Versión vertical (teléfono): la misma escena, pegada abajo, con el cielo prolongado hacia arriba.
+VERT = "--v" in sys.argv
+CW, CH = (1080, 2160) if VERT else (W, H)     # tamaño del lienzo visible
+DY = CH - H if VERT else 0                    # cuánto cielo se añade por encima
+X0 = {"amarillo": 840, "azul": 380, "rosado": 100, "verde": 420, "morado": 840, "naranja": 480}
+VX = 0                                        # borde izquierdo visible (se fija por escena)
 AQUI = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(AQUI, "img")
+OUT = os.environ.get("ACUARELA_OUT") or os.path.join(AQUI, "img")
 
 
 # ---------------------------------------------------------------- utilidades
@@ -77,7 +83,7 @@ class Esc:
         s.b.append(f'<g filter="url(#{filtro})"{m}{extra}>' + "".join(items) + "</g>")
 
     def full(s, fill, op=1):
-        return f'<rect x="-100" y="-100" width="{W + 200}" height="{H + 200}" fill="{fill}" fill-opacity="{op}"/>'
+        return f'<rect x="-100" y="{-100 - DY}" width="{W + 200}" height="{H + 200 + DY}" fill="{fill}" fill-opacity="{op}"/>'
 
     def salpicar(s, n_, c, x0, y0, x1, y1, rmax=7, op=.5):
         out = []
@@ -88,10 +94,10 @@ class Esc:
     def svg(s):
         defs = "".join(s.defs)
         return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" preserveAspectRatio="xMidYMid slice">'
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{VX} {-DY} {CW} {CH}" preserveAspectRatio="xMidYMid slice">'
             f'<defs>{defs}'
             # lavado: bordes que se corren + pigmento granulado
-            f'<filter id="agua" filterUnits="userSpaceOnUse" x="-150" y="-150" width="{W + 300}" height="{H + 300}">'
+            f'<filter id="agua" filterUnits="userSpaceOnUse" x="-150" y="{-150 - DY}" width="{W + 300}" height="{H + 300 + DY}">'
             f'<feTurbulence type="fractalNoise" baseFrequency="0.011 0.015" numOctaves="3" seed="4" result="t"/>'
             f'<feDisplacementMap in="SourceGraphic" in2="t" scale="38" xChannelSelector="R" yChannelSelector="G" result="d"/>'
             f'<feGaussianBlur in="d" stdDeviation="1.3" result="b"/>'
@@ -99,13 +105,13 @@ class Esc:
             f'<feColorMatrix in="gr" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.55" result="ga"/>'
             f'<feComposite in="b" in2="ga" operator="in"/></filter>'
             # detalles pequeños: menos desplazamiento
-            f'<filter id="fino" filterUnits="userSpaceOnUse" x="-150" y="-150" width="{W + 300}" height="{H + 300}">'
+            f'<filter id="fino" filterUnits="userSpaceOnUse" x="-150" y="{-150 - DY}" width="{W + 300}" height="{H + 300 + DY}">'
             f'<feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="2" result="t"/>'
             f'<feDisplacementMap in="SourceGraphic" in2="t" scale="9" xChannelSelector="R" yChannelSelector="G" result="d"/>'
             f'<feGaussianBlur in="d" stdDeviation=".7"/></filter>'
-            f'<filter id="brillo" filterUnits="userSpaceOnUse" x="-150" y="-150" width="{W + 300}" height="{H + 300}">'
+            f'<filter id="brillo" filterUnits="userSpaceOnUse" x="-150" y="{-150 - DY}" width="{W + 300}" height="{H + 300 + DY}">'
             f'<feGaussianBlur stdDeviation="28"/></filter>'
-            f'<filter id="bokeh" filterUnits="userSpaceOnUse" x="-150" y="-150" width="{W + 300}" height="{H + 300}">'
+            f'<filter id="bokeh" filterUnits="userSpaceOnUse" x="-150" y="{-150 - DY}" width="{W + 300}" height="{H + 300 + DY}">'
             f'<feGaussianBlur stdDeviation="9"/></filter>'
             f'<filter id="papel" x="0" y="0" width="100%" height="100%">'
             f'<feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" seed="5" result="n"/>'
@@ -114,10 +120,10 @@ class Esc:
             f'<feTurbulence type="fractalNoise" baseFrequency="0.0035 0.005" numOctaves="3" seed="12" result="n"/>'
             f'<feColorMatrix in="n" type="matrix" values="0 0 0 0 .9  0 0 0 0 .82  0 0 0 0 .7  0 0 0 1.4 -.45"/></filter>'
             f'</defs>'
-            f'<rect width="{W}" height="{H}" fill="{s.papel}"/>'
+            f'<rect x="{VX}" y="{-DY}" width="{CW}" height="{CH}" fill="{s.papel}"/>'
             + "".join(s.b) +
-            f'<rect width="{W}" height="{H}" filter="url(#manchas)" style="mix-blend-mode:multiply" opacity=".55"/>'
-            f'<rect width="{W}" height="{H}" filter="url(#papel)" style="mix-blend-mode:multiply" opacity=".55"/>'
+            f'<rect x="{VX}" y="{-DY}" width="{CW}" height="{CH}" filter="url(#manchas)" style="mix-blend-mode:multiply" opacity=".55"/>'
+            f'<rect x="{VX}" y="{-DY}" width="{CW}" height="{CH}" filter="url(#papel)" style="mix-blend-mode:multiply" opacity=".55"/>'
             f'</svg>')
 
 
@@ -321,21 +327,21 @@ def verde():
     hz = 700
     e.g([e.full(e.grad([(0, "#cfe6b0"), (.5, "#e5f0c8"), (1, "#a9cf92")]))])
     # rayos de luz
-    e.g([f'<polygon points="{x},-50 {x + 160},-50 {x + 160 + 520},{H} {x + 520},{H}" fill="#fffbe0" fill-opacity=".34"/>'
+    e.g([f'<polygon points="{x},{-50 - DY} {x + 160},{-50 - DY} {x + 160 + 520},{H} {x + 520},{H}" fill="#fffbe0" fill-opacity=".34"/>'
          for x in (150, 520, 900)], "brillo", mult=False)
     # troncos lejanos -> cercanos
-    e.g([tronco(e, r.uniform(0, W), r.uniform(26, 44), -60, hz + 20, "#9fc294", .35) for _ in range(16)])
-    e.g([tronco(e, r.uniform(0, W), r.uniform(48, 80), -60, hz + 60, "#6aa073", .5) for _ in range(9)])
+    e.g([tronco(e, r.uniform(0, W), r.uniform(26, 44), -60 - DY, hz + 20, "#9fc294", .35) for _ in range(16)])
+    e.g([tronco(e, r.uniform(0, W), r.uniform(48, 80), -60 - DY, hz + 60, "#6aa073", .5) for _ in range(9)])
     # suelo y camino sinuoso en perspectiva
     e.g([e.p(e.cresta(hz + 20, 18, 300), "#86bd78", .7)])
     e.g([e.p(suave([(930, hz + 6), (1000, hz + 6), (1050, 830), (1420, H + 90), (480, H + 90), (820, 850)], True), "#f0e4b8", .8)])
     e.g([e.p(e.blob(250, 930, 380, 150, 9, .2), "#4e9a62", .6), e.p(e.blob(1680, 940, 400, 150, 9, .2), "#4e9a62", .6)])
     # troncos grandes en primer plano + copa
     for x, a in ((120, 150), (1760, 170), (1480, 95), (440, 80)):
-        e.g([tronco(e, x, a, -80, H + 60, "#2e5a3f", .72), tronco(e, x + a * .15, a * .35, -80, H + 60, "#1f4430", .35)])
+        e.g([tronco(e, x, a, -80 - DY, H + 60, "#2e5a3f", .72), tronco(e, x + a * .15, a * .35, -80 - DY, H + 60, "#1f4430", .35)])
     copas = []
     for _ in range(26):
-        copas.append(e.p(e.blob(r.uniform(-50, W + 50), r.uniform(-60, 120), r.uniform(120, 260), r.uniform(60, 120), 9, .3), r.choice(["#3f7d52", "#2f6a46", "#58935c"]), .5, False))
+        copas.append(e.p(e.blob(r.uniform(-50, W + 50), r.uniform(-60 - DY, 120 - DY), r.uniform(120, 260), r.uniform(60, 120), 9, .3), r.choice(["#3f7d52", "#2f6a46", "#58935c"]), .5, False))
     e.g(copas)
     # manchas de luz en el suelo
     e.g([e.p(e.blob(r.uniform(300, 1700), r.uniform(hz + 60, H - 30), r.uniform(40, 120), r.uniform(8, 22), 8, .3), "#fff6c0", .55, False) for _ in range(14)], mult=False)
@@ -442,12 +448,33 @@ def naranja():
 
 ESCENAS = dict(amarillo=amarillo, azul=azul, rosado=rosado, verde=verde, morado=morado, naranja=naranja)
 
+def cielo_extra(nombre, e):
+    """Cielo añadido por encima de la escena en la versión vertical."""
+    r = e.r
+    x0, x1, y0, y1 = VX - 80, VX + CW + 80, -DY, 0
+    noche = nombre in ("azul", "morado")
+    if noche:
+        e.g([e.circ(r.uniform(x0, x1), r.uniform(y0, y1 - 40), r.uniform(1.4, 3.6), "#fffdf0", r.uniform(.45, .95)) for _ in range(150)], "fino", mult=False)
+    nubes = {"amarillo": "#fffaf0", "naranja": "#fff1d6", "rosado": "#ffc4da", "verde": "#e9f8d2", "azul": "#2a4d9b", "morado": "#d2aef0"}[nombre]
+    op = .2 if noche else .7
+    e.g([e.p(e.blob(r.uniform(x0, x1), r.uniform(y0 + 60, y1 - 120), r.uniform(190, 340), r.uniform(26, 50), 9, .22), nubes, op * r.uniform(.6, 1), False)
+         for _ in range(9)], mult=False)
+    if nombre == "naranja":
+        e.g([e.linea(f"M{x} {y} q7 -9 14 0 q7 -9 14 0", "#5a2a44", 2.2, .75) for x, y in ((VX + 300, -700), (VX + 335, -678), (VX + 800, -1000))], "fino")
+    e.g(e.salpicar(40, "#fffaf0", x0, y0, x1, y1, 5, .6), "fino", mult=False)
+
+
 if __name__ == "__main__":
-    import sys
     os.makedirs(OUT, exist_ok=True)
+    nombres = [a for a in sys.argv[1:] if not a.startswith("--")]
     for nombre, fn in ESCENAS.items():
-        if len(sys.argv) > 1 and nombre not in sys.argv[1:]:
+        if nombres and nombre not in nombres:
             continue
-        with open(os.path.join(OUT, f"{nombre}.svg"), "w", encoding="utf-8") as fh:
-            fh.write(fn().svg())
+        if VERT:
+            VX = X0[nombre]
+        e = fn()
+        if VERT:
+            cielo_extra(nombre, e)
+        with open(os.path.join(OUT, f"{nombre}{'-v' if VERT else ''}.svg"), "w", encoding="utf-8") as fh:
+            fh.write(e.svg())
         print("ok", nombre)
