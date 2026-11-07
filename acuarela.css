@@ -145,7 +145,7 @@ body[data-vista="enfoque"] .agenda { display: none; }
   .ag-lado .ag-grupo-cab { font-family: var(--serif); font-size: 1.1rem; font-weight: 400; }
   /* dentro de una lista */
   .ag-centro { padding: 1rem 1rem 0; }
-  .ag-cab { padding-right: 6.6rem; margin-bottom: .6rem; }
+  .ag-cab { padding-right: 10rem; margin-bottom: .6rem; }
   .ag-h { font-size: 2.2rem; }
   .ag-detalle { inset: 0; width: 100%; padding-top: calc(var(--sat) + 1.2rem); }
   body:has(.ag-caja.con-detalle) .barra { display: none; }
@@ -185,3 +185,13 @@ body[data-vista="enfoque"] .agenda { display: none; }
 .ag-ficha-ed { padding: .3rem .1rem 1rem 2rem; animation: ag-entra .2s ease both; }
 .ag-ficha-ins .ag-ins { display: inline-grid; vertical-align: middle; }
 .ag-anadir { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin-top: 1.1rem; }
+
+/* ==================== Modo noche ==================== */
+body.noche[data-tono] {
+  --texto: #eef1fa; --texto-suave: rgba(238, 241, 250, .7); --sutil: rgba(238, 241, 250, .22);
+  --acento: #cdd8f6; --acento-texto: #0e1530; --papel: #121a2e; --ag-solid: #121a2e;
+  --halo: rgba(4, 7, 18, .82); --lavado: rgba(5, 9, 24, .6); --campo: rgba(255, 255, 255, .1); --borde: rgba(255, 255, 255, .2);
+  --vidrio: transparent; --velo: radial-gradient(ellipse at center, rgba(4, 8, 24, .3) 0%, rgba(4, 8, 24, .62) 100%); --vencida: #ff8a76;
+}
+body.noche .fondo { filter: brightness(.5) saturate(.8) hue-rotate(-6deg); }
+body.noche .ag-caja.en-menu .ag-nav[data-lid] { filter: brightness(.82); }
