@@ -489,7 +489,7 @@
       for (let i = 0; i < vacios; i++) grid.append(h('span'));
       for (let d = 1; d <= diasDelMes(ver.getFullYear(), ver.getMonth()); d++) {
         const s = L.hoy(new Date(ver.getFullYear(), ver.getMonth(), d));
-        grid.append(h('button', { class: 'ag-cal-dia' + (s === hoy ? ' hoy' : '') + (s === valor ? ' sel' : ''), onclick: () => alElegir(s) }, d));
+        grid.append(h('button', { class: 'ag-cal-dia' + (s === hoy ? ' ya' : '') + (s === valor ? ' sel' : ''), onclick: () => alElegir(s) }, d));
       }
       caja.append(grid, h('div', { class: 'ag-chips' },
         h('button', { class: 'ag-chip', onclick: () => alElegir(hoy) }, 'Hoy'),
@@ -508,7 +508,7 @@
     const d = t.fecha, pasada = d === hoy && t.hora && L.momento(t) < Date.now();
     const vencida = !t.hecha && ((d && d < hoy) || (!d && t.limite && t.limite < hoy) || pasada);
     return [
-      d && m('fecha' + (vencida ? ' vencida' : d === hoy ? ' hoy' : ''), ico('cal'), L.etiquetaFecha(d, hoy) + (t.hora ? ' · ' + t.hora : '')),
+      d && m('fecha' + (vencida ? ' vencida' : d === hoy ? ' ya' : ''), ico('cal'), L.etiquetaFecha(d, hoy) + (t.hora ? ' · ' + t.hora : '')),
       !d && t.limite && m('fecha' + (vencida ? ' vencida' : ''), ico('i_bandera'), 'Vence ' + L.etiquetaFecha(t.limite, hoy)),
       d && t.limite && t.limite !== d && m(!t.hecha && t.limite < hoy ? 'vencida' : '', ico('i_bandera'), L.etiquetaFecha(t.limite, hoy)),
       t.dur > 0 && m('', ico('i_reloj'), textoDur(t.dur)),
@@ -638,7 +638,7 @@
       h('button', { class: 'ag-mini', 'aria-label': 'Semana anterior', onclick: () => { ui.semana--; listaUI(); } }, ico('prev')),
       h('b', null, ui.semana === 0 ? 'Esta semana' : rango), h('span', { class: 'ag-nota' }, ui.semana === 0 ? rango : ''),
       h('button', { class: 'ag-mini', 'aria-label': 'Semana siguiente', disabled: ui.semana >= 0, onclick: () => { ui.semana++; listaUI(); } }, ico('sig'))));
-    const cab = h('div', { class: 'ag-rut cab' }, h('span', { class: 'ag-rut-n' }), dias.map(d => h('span', { class: 'ag-rut-d' + (d === hoy ? ' hoy' : '') }, h('i', null, 'LMXJVSD'[dias.indexOf(d)]), h('b', null, aFecha(d).getDate()))), h('span', { class: 'ag-rut-t' }));
+    const cab = h('div', { class: 'ag-rut cab' }, h('span', { class: 'ag-rut-n' }), dias.map(d => h('span', { class: 'ag-rut-d' + (d === hoy ? ' ya' : '') }, h('i', null, 'LMXJVSD'[dias.indexOf(d)]), h('b', null, aFecha(d).getDate()))), h('span', { class: 'ag-rut-t' }));
     c.append(cab);
     for (const t of rs) {
       const cumplidos = L.diasCumplidos(E, t.id);
@@ -647,7 +647,7 @@
         h('button', { class: 'ag-rut-n', onclick: () => seleccionar(t.id) }, insignia(t), h('span', null, t.titulo || '(sin título)')),
         dias.map(d => {
           const hecho = cumplidos.has(d), toca = programado(t, d);
-          return h('button', { class: 'ag-celda' + (hecho ? ' hecho' : '') + (toca ? '' : ' libre') + (d === hoy ? ' hoy' : ''), disabled: d > hoy,
+          return h('button', { class: 'ag-celda' + (hecho ? ' hecho' : '') + (toca ? '' : ' libre') + (d === hoy ? ' ya' : ''), disabled: d > hoy,
             'aria-label': `${t.titulo}, ${L.etiquetaFecha(d, hoy)}: ${hecho ? 'cumplido' : 'pendiente'}`, onclick: () => alternarDia(t, d) }, hecho ? ico('hechas') : null);
         }),
         h('span', { class: 'ag-rut-t' }, prog.length ? `${hechos} de ${prog.length}` : '')));
@@ -663,7 +663,7 @@
     const totalSem = sem.reduce((n, d) => n + d.pomodoros, 0);
     const dato = (n, txt) => h('div', null, h('b', null, n), h('span', null, txt));
     c.append(h('div', { class: 'ag-resumen' }, dato(hoyD.pomodoros, 'pomodoros hoy'), dato(hoyD.min, 'min de enfoque hoy'), dato(totalSem, 'pomodoros en 7 días')),
-      h('div', { class: 'ag-barras' }, sem.map(d => h('div', { class: 'ag-col' + (d.dia === hoy ? ' hoy' : '') },
+      h('div', { class: 'ag-barras' }, sem.map(d => h('div', { class: 'ag-col' + (d.dia === hoy ? ' ya' : '') },
         h('span', { class: 'n' }, d.pomodoros || ''), h('div', { class: 'b', style: `height:${Math.max(4, d.pomodoros / max * 100)}%` }), h('span', { class: 'l' }, 'DLMXJVS'[L.dow(d.dia)])))));
     const dias = L.historial(E, 30);
     if (!dias.length) { c.append(h('div', { class: 'ag-vacio' }, 'Aún no hay actividad. Cuando completes tareas o termines pomodoros, aparecerán aquí día por día.')); return; }
