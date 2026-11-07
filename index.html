@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="img/app/icono-192.png">
-<link rel="stylesheet" href="agenda.css?v=50">
+<link rel="stylesheet" href="agenda.css?v=51">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -297,7 +297,7 @@
     .tabs button.on span { font-weight: 600; }
   }
 </style>
-<link rel="stylesheet" href="acuarela.css?v=50">
+<link rel="stylesheet" href="acuarela.css?v=51">
 </head>
 <body data-vista="agenda">
 
@@ -352,9 +352,6 @@
   </button>
   <button class="btn-sec solo-enfoque" data-panel="musica" data-tip="Música" aria-label="Música">
     <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
-  </button>
-  <button class="btn-sec" id="luna" data-tip="Modo noche" aria-label="Modo noche">
-    <svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
   </button>
   <button class="btn-sec" data-panel="ajustes" data-tip="Ajustes" aria-label="Ajustes">
     <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
@@ -473,8 +470,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=50"></script>
-<script src="agenda.js?v=50"></script>
+<script src="nube.js?v=51"></script>
+<script src="agenda.js?v=51"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -546,7 +543,6 @@
     const noche = cfg.tema === 'noche' || (cfg.tema === 'auto' && sistemaOscuro.matches);
     document.body.classList.toggle('noche', noche);
     document.querySelector('meta[name="theme-color"]').content = noche ? '#0b1020' : '#1a2b42';
-    const l = document.getElementById('luna'); if (l) { l.classList.toggle('on', noche); l.dataset.tip = noche ? 'Modo día' : 'Modo noche'; l.setAttribute('aria-label', l.dataset.tip); }
   }
   sistemaOscuro.addEventListener('change', aplicarTema);
   // Sombra lateral: intensidad y ancho del lavado que ayuda a leer sobre la acuarela
@@ -788,7 +784,6 @@
   }
   $('pildoraIr').onclick = () => irA('enfoque');
   $('libre').onclick = () => empezarEnfoque(null);
-  $('luna').onclick = () => { cfg.tema = document.body.classList.contains('noche') ? 'dia' : 'noche'; guardarCfg(); aplicarTema(); pintarAjustes(); };
   $('pildoraBtn').onclick = () => { alternar(); pintarPildora(); };
   // La Agenda es el centro de la app: «volver» desde el reloj lleva a la Agenda
   const irAAgenda = () => irA('agenda');

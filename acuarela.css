@@ -146,7 +146,7 @@ body[data-vista="enfoque"] .agenda { display: none; }
   .ag-lado .ag-grupo-cab { font-family: var(--serif); font-size: 1.1rem; font-weight: 400; }
   /* dentro de una lista */
   .ag-centro { padding: 1rem 1rem 0; }
-  .ag-cab { padding-right: 10rem; margin-bottom: .6rem; }
+  .ag-cab { padding-right: 6.6rem; margin-bottom: .6rem; }
   .ag-h { font-size: 2.2rem; }
   .ag-detalle { inset: 0; width: 100%; padding-top: calc(var(--sat) + 1.2rem); }
   body:has(.ag-caja.con-detalle) .barra { display: none; }
