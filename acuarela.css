@@ -247,3 +247,9 @@ body:has(#ajustes.abierto) .barra { display: none; }
   .ag-detalle { padding-bottom: calc(1.6rem + var(--sab)); padding-left: max(1.4rem, env(safe-area-inset-left, 0px)); padding-right: max(1.4rem, env(safe-area-inset-right, 0px)); }
   .ag-caja.en-menu .ag-lado { padding-top: .6rem; }
 }
+
+/* La sombra cubre también las franjas de la barra de estado y de gestos (no se corta en el margen de seguridad) */
+@media (max-width: 760px) {
+  .ag-caja, .ag-caja.con-detalle { overflow: visible; }
+  .ag-caja::before { inset: calc(-1 * var(--sat)) calc(-1 * env(safe-area-inset-right, 0px)) calc(-1 * var(--tabs-h)) calc(-1 * env(safe-area-inset-left, 0px)); }
+}
