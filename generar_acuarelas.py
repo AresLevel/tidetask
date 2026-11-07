@@ -9,7 +9,7 @@ VERT = "--v" in sys.argv
 CW, CH = (1080, 2160) if VERT else (W, H)     # tamaño del lienzo visible
 DY = CH - H if VERT else 0                    # cuánto cielo se añade por encima
 X0 = {"amarillo": 840, "azul": 380, "rosado": 100, "verde": 420, "morado": 840, "naranja": 480,
-      "turquesa": 380, "rojo": 400, "aurora": 380, "niebla": 420}
+      "turquesa": 420, "rojo": 420, "aurora": 420, "niebla": 420}
 VX = 0                                        # borde izquierdo visible (se fija por escena)
 AQUI = os.path.dirname(os.path.abspath(__file__))
 OUT = os.environ.get("ACUARELA_OUT") or os.path.join(AQUI, "img")
@@ -447,98 +447,100 @@ def naranja():
     return e
 
 
-# ---------------------------------------------------------------- TURQUESA: laguna con palmeras
-def palmera(e, x, base, alto, inc):
+# ---------------------------------------------------------------- TURQUESA: laguna vista desde arriba (aérea)
+def vista_palmera(e, x, y, s):
     r = e.r
-    tx, ty = x + inc, base - alto
-    tr = [e.linea(f"M{n(x)} {n(base)} Q{n(x + inc * .2)} {n(base - alto * .6)} {n(tx)} {n(ty)}", "#6b4a35", max(6, alto * .04), .9)]
-    hojas = []
-    for i in range(9):
-        a = -math.pi * (.05 + .9 * i / 8) + r.uniform(-.1, .1)
-        L = alto * r.uniform(.45, .62)
-        ex, ey = tx + math.cos(a) * L, ty + math.sin(a) * L * .7 + L * .35
-        hojas.append(e.linea(f"M{n(tx)} {n(ty)} Q{n(tx + math.cos(a) * L * .5)} {n(ty + math.sin(a) * L * .6 - 25)} {n(ex)} {n(ey)}",
-                             r.choice(["#2f8a62", "#3fa874", "#1f6f52"]), max(5, alto * .035), .85))
-    return tr, hojas
+    it = []
+    for i in range(10):
+        a = 2 * math.pi * i / 10 + r.uniform(-.12, .12)
+        L = s * r.uniform(.8, 1.05)
+        ex, ey = x + math.cos(a) * L, y + math.sin(a) * L * .92
+        mx, my = x + math.cos(a + .25) * L * .55, y + math.sin(a + .25) * L * .5
+        it.append(e.linea(f"M{n(x)} {n(y)} Q{n(mx)} {n(my)} {n(ex)} {n(ey)}", r.choice(["#1f7a52", "#2f9a68", "#3fb27a"]), max(5, s * .11), .85))
+    it.append(e.circ(x, y, s * .1, "#6b4a35", .95))
+    return it
 
 
 def turquesa():
     e = Esc(71, "#f4f9f3")
     r = e.r
-    hz = 600
-    e.g([e.full(e.grad([(0, "#7fd6e0"), (.55, "#c4f0ea"), (1, "#fff4d6")]))])
-    halo(e, 1450, 230, 400, "#fffbe0", .9)
-    e.g([e.p(e.blob(1450, 230, 100, 100, 11, .03), "#fff6c4", .95, False)], "fino", mult=False)
-    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(80, 420), r.uniform(180, 320), r.uniform(26, 46), 9, .22), "#ffffff", .75, False) for _ in range(6)], mult=False)
-    e.g([e.p(e.cresta(hz - 16, 16, 100, 150, 700, hz + 4), "#5fb3b0", .55)])
-    e.g([e.p(f"M-100 {hz} L{W + 100} {hz} L{W + 100} {H + 100} L-100 {H + 100} Z", e.grad([(0, "#7fe0dc"), (.4, "#27bfc4"), (1, "#0a7f94")]), 1, False)], mult=False)
-    olas = []
-    for _ in range(120):
-        y = hz + 8 + (r.random() ** 1.4) * (H - hz)
-        k = (y - hz) / (H - hz)
-        olas.append(e.p(e.blob(r.uniform(-50, W + 50), y, r.uniform(90, 260) * (.5 + k), r.uniform(2.5, 6) * (.5 + k * 1.6), 8, .25),
-                        r.choice(["#e6fffb", "#0c7d90", "#5fd6d2", "#1aa5b5"]), r.uniform(.25, .5), False))
-    e.g(olas)
-    # bajío de arena en primer plano (derecha)
-    e.g([e.p(e.blob(1500, 1000, 640, 150, 9, .2), "#f6e2b4", .95, False), e.p(e.blob(1560, 980, 420, 90, 9, .2), "#fff1cf", .8, False)], mult=False)
-    # isla con palmeras
-    e.g([e.p(e.blob(450, 900, 520, 120, 9, .18), "#f1d9a0", .95, False), e.p(e.blob(430, 880, 300, 70, 9, .2), "#7cc27a", .8)], mult=False)
-    for (x, b, a, inc) in ((300, 880, 470, -70), (470, 890, 560, 60), (640, 900, 380, 90), (1560, 990, 330, -50)):
-        tr, hj = palmera(e, x, b, a, inc)
-        e.g(tr, "fino", mult=False)
-        e.g(hj, "fino")
-    # reflejo del sol
-    e.g([e.p(e.blob(1450 + r.uniform(-60, 60), hz + 30 + i * 24, 80 - i * 2.4, 4 + i * .18, 8, .3), "#fffbe0", .55 - i * .012, False) for i in range(16)], "fino", mult=False)
-    e.g(e.salpicar(35, "#ffffff", 0, 0, W, H, 6, .7), "fino", mult=False)
+    e.g([e.full(e.grad([(0, "#0a7f94"), (.5, "#16aab8"), (1, "#4fd2cf")], 1, 1))])
+    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(-DY, H), r.uniform(200, 440), r.uniform(120, 280), 9, .25), r.choice(["#0b6f8a", "#1cb6c2", "#7fe6df"]), .3, False) for _ in range(16)])
+    # aguas someras y bancos de arena alrededor de la isla
+    e.g([e.p(e.blob(1000, 540, 700, 360, 11, .12), "#79e0d8", .75, False), e.p(e.blob(1000, 540, 520, 270, 11, .12), "#a9f0e0", .85, False)], mult=False)
+    for (x, y, rx, ry) in ((380, 840, 200, 90), (1620, 230, 230, 100), (1560, 900, 260, 110), (330, 190, 150, 70)):
+        e.g([e.p(e.blob(x, y, rx * 1.5, ry * 1.6, 9, .15), "#8fe8df", .6, False), e.p(e.blob(x, y, rx, ry, 9, .18), "#f3dfaa", .95, False)], mult=False)
+    e.g([e.p(e.blob(1000, 545, 360, 175, 11, .14), "#f3dfaa", .98, False), e.p(e.blob(990, 535, 250, 110, 11, .15), "#fff1cf", .85, False)], mult=False)
+    e.g([e.p(e.blob(1010, 520, 215, 100, 10, .14), "#6cbf7a", .9, False), e.p(e.blob(1000, 515, 140, 62, 9, .16), "#3f9a68", .55, False)], mult=False)
+    palmas = []
+    for (x, y, s) in ((920, 505, 125), (1100, 545, 105), (1030, 465, 92)):
+        palmas += vista_palmera(e, x, y, s)
+    e.g(palmas, "fino", mult=False)
+    # lancha vista desde arriba con su estela
+    bx, by, ang = 520, 360, -18
+    e.g([e.p(e.blob(bx - 250, by + 40, 280, 14, 8, .25), "#ffffff", .55, False), e.p(e.blob(bx - 190, by + 20, 200, 8, 8, .25), "#ffffff", .5, False)], "fino", mult=False)
+    e.g([f'<g transform="rotate({ang} {bx} {by})"><ellipse cx="{bx}" cy="{by}" rx="78" ry="26" fill="#8a4b2c" fill-opacity=".95"/>'
+         f'<ellipse cx="{bx + 6}" cy="{by}" rx="58" ry="15" fill="#e9c48a" fill-opacity=".95"/><circle cx="{bx - 16}" cy="{by}" r="9" fill="#e8453c" fill-opacity=".9"/></g>'], "fino", mult=False)
+    # destellos del sol sobre el agua
+    e.g([e.linea(f"M{n(x)} {n(y)} q18 -6 36 0 q18 6 36 0", "#e6fffb", 3, r.uniform(.3, .6)) for x, y in ((r.uniform(0, W), r.uniform(-DY, H)) for _ in range(150))], "fino", mult=False)
+    e.g(e.salpicar(30, "#ffffff", 0, -DY, W, H, 5, .6), "fino", mult=False)
     return e
 
 
-# ---------------------------------------------------------------- ROJO: otoño con arces
-def arce(e, x, y, s):
-    r = e.r
-    tr = [e.linea(f"M{n(x)} {n(H + 60)} Q{n(x + r.uniform(-30, 30))} {n((y + H) / 2)} {n(x)} {n(y + s * .3)}", "#4a2f2a", max(8, s * .13), .9)]
-    for sgn in (-1, 1):
-        tr.append(e.linea(f"M{n(x)} {n(y + s * .7)} L{n(x + sgn * s * .55)} {n(y + s * .15)}", "#4a2f2a", max(4, s * .06), .85))
-    copa = []
-    for _ in range(14):
-        copa.append(e.p(e.blob(x + r.uniform(-s, s) * .85, y + r.uniform(-s, s * .3) * .8, s * r.uniform(.28, .5), s * r.uniform(.22, .4), 8, .25),
-                        r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24", "#f2b134"]), r.uniform(.5, .75), False))
-    return tr, copa
+# ---------------------------------------------------------------- ROJO: mirando hacia arriba entre las copas del otoño
+def tronco_fuga(e, bx, ancho, cx, cy, c, op):
+    pts_i, pts_d = [], []
+    for k in range(9):
+        t = k / 8
+        x = bx + (cx + (bx - cx) * .3 - bx) * t * t + (cx - bx) * .12 * t
+        y = H + 80 + (cy + 40 - H - 80) * t
+        w = ancho * (1 - t * .85)
+        pts_i.append((x - w / 2, y))
+        pts_d.append((x + w / 2, y))
+    return e.p(suave(pts_i + pts_d[::-1], True), c, op)
 
 
 def rojo():
     e = Esc(83, "#fbf1e6")
     r = e.r
-    hz = 700
-    e.g([e.full(e.grad([(0, "#f6c9a6"), (.5, "#fbe0c0"), (1, "#fff0d8")]))])
-    halo(e, 600, 330, 380, "#fff3d6", .9)
-    e.g([e.p(e.blob(600, 330, 95, 95, 11, .03), "#fff0cf", .93, False)], "fino", mult=False)
-    e.g([e.p(e.cresta(hz - 40, 60, 260), "#d6866a", .45)])
-    e.g([e.p(e.cresta(hz + 10, 40, 220), "#b8523a", .55)])
-    e.g([e.p(e.cresta(hz + 80, 25, 240), "#d99a4a", .8)], mult=False)
-    # camino en perspectiva cubierto de hojas
-    e.g([e.p(suave([(930, hz + 70), (1010, hz + 70), (1130, 860), (1560, H + 90), (380, H + 90), (800, 860)], True), "#e8b36a", .85)], mult=False)
-    hojas = []
-    for _ in range(200):
-        y = r.uniform(hz + 90, H)
-        k = (y - hz) / (H - hz)
-        x = r.uniform(300, 1700)
-        hojas.append(e.p(e.blob(x, y, r.uniform(8, 20) * (.4 + k), r.uniform(5, 11) * (.4 + k), 6, .2, r.uniform(0, 3)),
-                         r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24"]), r.uniform(.5, .8), False))
-    e.g(hojas, "fino", mult=False)
-    for (x, y, s) in ((130, 380, 330), (1780, 340, 360), (520, 560, 190), (1430, 590, 200), (1050, 640, 130)):
-        t, c = arce(e, x, y, s)
-        e.g(t, "fino", mult=False)
-        e.g(c)
-    caen = []
+    cx, cy = 960, 330
+    e.g([e.full(e.grad([(0, "#f2a77a"), (.5, "#f9c999"), (1, "#fde3b4")]))])
+    halo(e, cx, cy, 460, "#fff6dc", 1)
+    e.g([f'<polygon points="{cx - 40},{cy} {cx + 40},{cy} {cx + 420},{H + 60} {cx - 420},{H + 60}" fill="#fff3cf" fill-opacity=".3"/>'], "brillo", mult=False)
+    # troncos que se juntan hacia arriba (visto desde abajo)
+    for bx, a in ((90, 190), (420, 140), (760, 100), (1160, 100), (1500, 140), (1830, 190)):
+        e.g([tronco_fuga(e, bx + r.uniform(-30, 30), a, cx, cy, "#4a2f2a", .88)], "fino", mult=False)
+    # ramas hacia el centro
+    ramas = []
+    for _ in range(14):
+        sx = r.uniform(150, 1770)
+        sy = r.uniform(300, 760)
+        d = 1 if sx < cx else -1
+        ramas.append(e.linea(f"M{n(sx)} {n(sy)} q{n(d * r.uniform(60, 160))} {n(-r.uniform(40, 110))} {n(d * r.uniform(150, 300))} {n(-r.uniform(80, 200))}", "#4a2f2a", r.uniform(5, 14), .8))
+    e.g(ramas, "fino", mult=False)
+    # copas alrededor del claro de cielo
+    copas = []
     for _ in range(90):
-        x, y = r.uniform(0, W), r.uniform(60, H)
-        caen.append(e.p(e.blob(x, y, r.uniform(7, 14), r.uniform(4, 8), 6, .2, r.uniform(0, 3)), r.choice(["#d8321e", "#f08a2a", "#f2b134"]), .75, False))
+        a = r.uniform(0, 2 * math.pi)
+        d = r.uniform(300, 1000)
+        x, y = cx + math.cos(a) * d * 1.75, cy + math.sin(a) * d * .95
+        s = r.uniform(80, 210) * (.7 + d / 1100)
+        copas.append(e.p(e.blob(x, y, s * 1.2, s * .85, 8, .28), r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24", "#f2b134"]), r.uniform(.5, .78), False))
+    for _ in range(max(0, int(DY / 38))):
+        x, y = r.uniform(VX - 60, VX + CW + 60), r.uniform(-DY, 60)
+        s = r.uniform(110, 230)
+        copas.append(e.p(e.blob(x, y, s * 1.2, s * .85, 8, .28), r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24", "#f2b134"]), r.uniform(.55, .8), False))
+    e.g(copas)
+    # hojas cayendo
+    caen = []
+    for _ in range(130):
+        x, y = r.uniform(0, W), r.uniform(-DY, H)
+        caen.append(e.p(e.blob(x, y, r.uniform(7, 16), r.uniform(4, 9), 6, .2, r.uniform(0, 3)), r.choice(["#d8321e", "#f08a2a", "#f2b134"]), .78, False))
     e.g(caen, "fino", mult=False)
     return e
 
 
-# ---------------------------------------------------------------- AURORA: luces del norte sobre el lago
+# ---------------------------------------------------------------- AURORA: desde dentro de la tienda de campaña
 def pino(e, x, base, alto, c, op):
     ancho = alto * .38
     der = [(x, base - alto)]
@@ -553,52 +555,83 @@ def pino(e, x, base, alto, c, op):
 def aurora():
     e = Esc(97, "#eef4f4")
     r = e.r
-    hz = 640
+    hz = 660
     e.g([e.full(e.grad([(0, "#06122e"), (.55, "#0f3a52"), (1, "#1d6a72")]))])
-    e.g([e.circ(r.uniform(0, W), r.uniform(0, 520), r.uniform(1.4, 3.4), "#f4fffb", r.uniform(.5, .95)) for _ in range(90)], "fino", mult=False)
+    e.g([e.circ(r.uniform(500, 1420), r.uniform(60, 560), r.uniform(1.4, 3.4), "#f4fffb", r.uniform(.5, .95)) for _ in range(60)], "fino", mult=False)
     cortinas = []
     for i, col in enumerate(["#3cf2a2", "#35d6d8", "#7be8c8", "#8a7cf0"]):
-        pts = [(x, 160 + 70 * i + math.sin(x / 260 + i * 1.7) * 90 + r.uniform(-25, 25)) for x in range(-100, W + 200, 190)]
+        pts = [(x, 200 + 55 * i + math.sin(x / 200 + i * 1.7) * 80 + r.uniform(-20, 20)) for x in range(300, 1700, 150)]
         g = e.grad([(0, col), (1, "#06122e")], 0, 1)
-        cortinas.append(f'<path d="{suave(pts)} L{W + 200} {hz} L-100 {hz} Z" fill="{g}" fill-opacity=".34"/>')
+        cortinas.append(f'<path d="{suave(pts)} L1700 {hz} L300 {hz} Z" fill="{g}" fill-opacity=".5"/>')
     e.g(cortinas, "brillo", mult=False)
-    e.g([e.p(e.cresta(hz - 90, 70, 200, -100, W + 100, hz + 4), "#274f68", .85)], mult=False)
-    e.g([e.p(e.cresta(hz - 40, 40, 170, -100, W + 100, hz + 4), "#1b3a52", .9)], mult=False)
-    # lago con reflejo
-    e.g([e.p(f"M-100 {hz} L{W + 100} {hz} L{W + 100} {H + 100} L-100 {H + 100} Z", e.grad([(0, "#2a7a82"), (.5, "#134a5e"), (1, "#071b36")]), 1, False)], mult=False)
-    e.g([e.p(e.blob(r.uniform(300, 1500), hz + 40 + i * 28, r.uniform(200, 420), 8 + i, 8, .3), r.choice(["#3cf2a2", "#35d6d8"]), .2, False) for i in range(10)], "fino", mult=False)
-    e.g([e.p(e.blob(r.uniform(-50, W + 50), hz + 10 + (r.random() ** 1.4) * (H - hz), r.uniform(100, 280), r.uniform(2.5, 6), 8, .25), r.choice(["#04122c", "#2a7a82", "#7be8c8"]), r.uniform(.2, .4), False) for _ in range(70)])
-    # pinos a ambos lados
-    pinos = []
-    for _ in range(26):
-        x = r.choice([r.uniform(-60, 520), r.uniform(1400, 1980)])
-        pinos.append(pino(e, x, hz + r.uniform(20, 60), r.uniform(120, 340), "#07201f", .88))
-    for x, a in ((120, 560), (1800, 640), (380, 420), (1560, 470)):
-        pinos.append(pino(e, x, H + 60, a, "#041411", .93))
+    e.g([e.p(e.cresta(hz - 80, 50, 170, 300, 1700, hz + 4), "#274f68", .85)], mult=False)
+    e.g([e.p(e.cresta(hz - 36, 30, 150, 300, 1700, hz + 4), "#1b3a52", .9)], mult=False)
+    e.g([e.p(f"M300 {hz} L1700 {hz} L1700 {H + 100} L300 {H + 100} Z", e.grad([(0, "#2a7a82"), (.5, "#134a5e"), (1, "#071b36")]), 1, False)], mult=False)
+    e.g([e.p(e.blob(r.uniform(700, 1200), hz + 40 + i * 30, r.uniform(160, 320), 8 + i, 8, .3), r.choice(["#3cf2a2", "#35d6d8"]), .22, False) for i in range(9)], "fino", mult=False)
+    pinos = [pino(e, r.uniform(560, 1360), hz + r.uniform(8, 36), r.uniform(80, 220), "#07201f", .9) for _ in range(22)]
     e.g(pinos, "fino", mult=False)
-    e.g(e.salpicar(30, "#dffff4", 0, 0, W, 500, 4, .8), "fino", mult=False)
+    # tela de la tienda: todo lo que queda fuera del arco de la entrada
+    arco = suave([(430, H + 160), (540, 700), (690, 380), (960, 190), (1230, 380), (1380, 700), (1490, H + 160)], True)
+    e.b.append(f'<path d="M-400 {-DY - 400} H{W + 400} V{H + 400} H-400 Z {arco}" fill="#0c1326" fill-opacity=".97" fill-rule="evenodd"/>')
+    e.g([e.p(e.blob(r.choice([250, 1700]), r.uniform(0, H), 150, 520, 8, .2), "#1a2442", .55, False) for _ in range(5)], "fino", mult=False)
+    e.g([e.linea(arco, "#ffb55a", 7, .35)], "fino", mult=False)
+    # farol dentro de la tienda
+    halo(e, 260, 900, 420, "#ffb040", .7)
+    e.g([e.p(e.blob(260, 920, 34, 52, 8, .1), "#ffd27a", .95, False), e.linea("M260 880 L260 860", "#3a2a1a", 5, .9)], "fino", mult=False)
+    e.g(e.salpicar(14, "#ffd27a", 120, 700, 420, 1050, 4, .7), "fino", mult=False)
     return e
 
 
-# ---------------------------------------------------------------- GRIS: montañas entre la niebla
+# ---------------------------------------------------------------- GRIS: puente colgante que se pierde en la niebla
 def niebla():
     e = Esc(101, "#f1f2f1")
     r = e.r
-    e.g([e.full(e.grad([(0, "#bfcad6"), (.5, "#dde3e8"), (1, "#f2efe8")]))])
-    halo(e, 1250, 260, 360, "#ffffff", .85)
-    e.g([e.p(e.blob(1250, 260, 85, 85, 11, .03), "#fbfbf6", .9, False)], "fino", mult=False)
-    capas = [(430, 90, "#9fb0c4", .5), (520, 70, "#8498b0", .55), (620, 55, "#6a809c", .62), (730, 40, "#506784", .7), (850, 30, "#3a5070", .8)]
+    hz, cx = 560, 960
+    half = lambda y: (y - hz) * .62
+    e.g([e.full(e.grad([(0, "#bfcad6"), (.5, "#dde3e8"), (1, "#eef0ee")]))])
+    halo(e, 1250, 250, 340, "#ffffff", .85)
+    e.g([e.p(e.blob(1250, 250, 80, 80, 11, .03), "#fbfbf6", .9, False)], "fino", mult=False)
+    capas = [(380, 80, "#9fb0c4", .5), (440, 60, "#8498b0", .55), (500, 45, "#6a809c", .62)]
     for (b, a, c, op) in capas:
         e.g([e.p(e.cresta(b, a, 230), c, op)])
-        e.g([e.p(e.blob(r.uniform(300, 1700), b + 70, r.uniform(420, 700), r.uniform(26, 48), 9, .25), "#f4f6f7", .72, False) for _ in range(3)], mult=False)
-    pinos = []
-    for _ in range(34):
-        pinos.append(pino(e, r.uniform(-40, W + 40), 960 + r.uniform(0, 80), r.uniform(90, 240), r.choice(["#2c4260", "#243750"]), .8))
-    for x, a in ((160, 520), (1760, 600), (460, 330), (1480, 380)):
-        pinos.append(pino(e, x, H + 60, a, "#1c2c44", .88))
-    e.g(pinos, "fino", mult=False)
-    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(880, 1040), r.uniform(380, 640), r.uniform(26, 44), 9, .25), "#f4f6f7", .55, False) for _ in range(4)], mult=False)
-    e.g(e.salpicar(35, "#ffffff", 0, 0, W, H, 5, .6), "fino", mult=False)
+        e.g([e.p(e.blob(r.uniform(300, 1700), b + 60, r.uniform(380, 640), r.uniform(24, 44), 9, .25), "#f4f6f7", .7, False) for _ in range(3)], mult=False)
+    # abismo bajo el puente, con bruma
+    e.g([e.p(f"M-100 {hz - 10} L{W + 100} {hz - 10} L{W + 100} {H + 100} L-100 {H + 100} Z", e.grad([(0, "#e4e9ed"), (.5, "#a8b6c6"), (1, "#5a7090")]), .95, False)], mult=False)
+    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(hz + 40, H), r.uniform(300, 600), r.uniform(20, 40), 9, .25), "#f4f6f7", .6, False) for _ in range(7)], mult=False)
+    # riscos a los lados
+    e.g([e.p(suave([(-100, 320), (240, 420), (520, 640), (640, H + 100), (-100, H + 100)], True), "#2c4260", .88, False),
+         e.p(suave([(W + 100, 320), (1680, 420), (1400, 640), (1280, H + 100), (W + 100, H + 100)], True), "#2c4260", .88, False)], mult=False)
+    # tablero del puente en perspectiva
+    yb = H + 60
+    e.g([e.p(f"M{cx - 5} {hz} L{cx + 5} {hz} L{cx + half(yb)} {yb} L{cx - half(yb)} {yb} Z", "#9a7a54", .95, False)], mult=False)
+    tablas = []
+    for i in range(1, 38):
+        t = (i / 38) ** 2.0
+        y = hz + (yb - hz) * t
+        hw = half(y)
+        tablas.append(e.linea(f"M{n(cx - hw)} {n(y)} L{n(cx + hw)} {n(y)}", "#4a3322", 1.5 + t * 11, .65))
+    e.g(tablas, "fino", mult=False)
+    # barandillas: postes y cuerdas
+    cuerdas_i, cuerdas_d, postes = [], [], []
+    for j in range(0, 11):
+        t = (j / 10) ** 1.9
+        y = hz + (yb - hz) * t
+        k = (y - hz) / (yb - hz)
+        alto = 190 * k + 6
+        for sg, lst in ((-1, cuerdas_i), (1, cuerdas_d)):
+            x = cx + sg * (half(y) + 10)
+            postes.append(e.linea(f"M{n(x)} {n(y)} L{n(x)} {n(y - alto)}", "#4a3322", 3 + 11 * k, .9))
+            lst.append((x, y - alto))
+    for lst in (cuerdas_i, cuerdas_d):
+        postes.append(e.linea(suave(lst), "#6a4a30", 5, .9))
+        # cuerda baja
+        postes.append(e.linea(suave([(x, y + (yb - y) * 0 + (a_ * 0.55)) for (x, y), a_ in zip(lst, [0] * len(lst))]), "#6a4a30", 3, .5))
+    e.g(postes, "fino", mult=False)
+    # niebla que se come el fondo del puente
+    halo(e, cx, hz + 10, 360, "#f1f4f6", 1)
+    e.g([e.p(e.blob(cx + r.uniform(-300, 300), r.uniform(hz - 30, hz + 90), r.uniform(260, 460), r.uniform(18, 34), 9, .25), "#f7f8f8", .8, False) for _ in range(4)], mult=False)
+    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(900, 1040), r.uniform(380, 620), r.uniform(24, 40), 9, .25), "#f4f6f7", .5, False) for _ in range(3)], mult=False)
+    e.g(e.salpicar(30, "#ffffff", 0, 0, W, H, 5, .6), "fino", mult=False)
     return e
 
 
@@ -630,7 +663,7 @@ if __name__ == "__main__":
         if VERT:
             VX = X0[nombre]
         e = fn()
-        if VERT:
+        if VERT and nombre not in ("turquesa", "rojo", "aurora"):
             cielo_extra(nombre, e)
         with open(os.path.join(OUT, f"{nombre}{'-v' if VERT else ''}.svg"), "w", encoding="utf-8") as fh:
             fh.write(e.svg())
