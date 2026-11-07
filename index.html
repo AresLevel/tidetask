@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=19">
+<link rel="stylesheet" href="agenda.css?v=21">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -417,8 +417,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=19"></script>
-<script src="agenda.js?v=19"></script>
+<script src="nube.js?v=21"></script>
+<script src="agenda.js?v=21"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -430,6 +430,32 @@
     const t = $('toast'); t.textContent = txt; t.classList.add('ver');
     clearTimeout(aviso.t); aviso.t = setTimeout(() => t.classList.remove('ver'), 3800);
   }
+
+  // ============ Avisos del sistema ============
+  // En la app de Android el WebView no admite notificaciones web: se usa el plugin nativo de notificaciones locales.
+  window.Avisos = {
+    nativo() { const C = window.Capacitor; return (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.LocalNotifications) || null; },
+    soportado() { return !!this.nativo() || 'Notification' in window; },
+    async permiso() {   // 'granted' | 'denied' | 'default'
+      const n = this.nativo();
+      if (n) { try { const r = await n.checkPermissions(); return r.display === 'granted' ? 'granted' : r.display === 'denied' ? 'denied' : 'default'; } catch { return 'denied'; } }
+      return 'Notification' in window ? Notification.permission : 'denied';
+    },
+    async pedir() {     // muestra el diálogo del sistema si hace falta; devuelve true si quedó concedido
+      const n = this.nativo();
+      if (n) { try { const r = await n.requestPermissions(); return r.display === 'granted'; } catch { return false; } }
+      if (!('Notification' in window)) return false;
+      if (Notification.permission === 'default') await Notification.requestPermission();
+      return Notification.permission === 'granted';
+    },
+    async enviar(titulo, cuerpo) {
+      const n = this.nativo();
+      try {
+        if (n) { await n.schedule({ notifications: [{ id: Math.floor(Math.random() * 2147483000), title: titulo, body: cuerpo, schedule: { at: new Date(Date.now() + 400) } }] }); return; }
+        if ('Notification' in window && Notification.permission === 'granted') new Notification(titulo, { body: cuerpo });
+      } catch { /* sin permiso o sin soporte */ }
+    },
+  };
 
   // ============ Datos ============
   // tono: 'claro' = texto blanco, 'oscuro' = texto oscuro. ambiente = sonido sugerido para la escena.
@@ -696,8 +722,8 @@
     const msg = eraEnfoque ? 'Pomodoro terminado. Toca descansar.' : 'Descanso terminado. A enfocarse.';
     if (cfg.alarma) { try { sonarAlarma(); } catch {} }
     aviso(msg);
-    if (cfg.notif && 'Notification' in window && Notification.permission === 'granted') {
-      try { new Notification(eraEnfoque ? 'Pomodoro terminado' : 'Descanso terminado', { body: msg }); } catch {}
+    if (cfg.notif) {
+      try { Avisos.enviar(eraEnfoque ? 'Pomodoro terminado' : 'Descanso terminado', msg); } catch {}
     }
   }
   function terminar(natural = false, ausente = false) {
@@ -749,8 +775,10 @@
   // ============ Recordatorios de tareas (opt-in) ============
   window.recordatoriosActivos = () => !!cfg.recordar;
   function pedirPermisoRecordar(alTerminar) {
-    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().then(() => { pintarAjustes(); if (alTerminar) alTerminar(); });
-    if (alTerminar && !('Notification' in window && Notification.permission === 'default')) alTerminar();
+    Avisos.pedir().then(ok => {
+      if (!ok && cfg.recordar) { cfg.recordar = false; guardarCfg(); aviso('Sin permiso de notificaciones no puedo avisarte. Puedes darlo en los ajustes del teléfono.'); }
+      pintarAjustes(); if (alTerminar) alTerminar();
+    });
   }
   window.activarRecordatorios = alTerminar => { cfg.recordar = true; guardarCfg(); pintarAjustes(); pedirPermisoRecordar(alTerminar); aviso('Recordatorios activados. Avisan mientras esta página esté abierta.'); };
 
@@ -791,8 +819,8 @@
     } else if (b.dataset.acc === 'sw') {
       cfg[k] = !cfg[k];
       if (k === 'notif' && cfg.notif) {
-        if (!('Notification' in window)) { cfg.notif = false; aviso('Este navegador no admite notificaciones'); }
-        else Notification.requestPermission().then(p => { if (p !== 'granted') { cfg.notif = false; guardarCfg(); pintarAjustes(); aviso('No se concedió el permiso de notificaciones'); } });
+        if (!Avisos.soportado()) { cfg.notif = false; aviso('Este dispositivo no admite notificaciones'); }
+        else Avisos.pedir().then(ok => { if (!ok) { cfg.notif = false; guardarCfg(); pintarAjustes(); aviso('No se concedió el permiso de notificaciones'); } });
       }
       if (k === 'recordar' && cfg.recordar) pedirPermisoRecordar();
       if (k === 'fondoDescansoOn') { const f = fondoParaModo(); if (f !== fondoActual.id) ponerFondo(f, false); }

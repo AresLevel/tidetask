@@ -471,7 +471,7 @@
       av.add(r.clave);
       const t = r.tarea, cuerpo = `${textoAntes(r.min)}${t.hora ? ' · ' + t.hora : ''}`;
       if (g.aviso) g.aviso(`${t.titulo || 'Tarea'}: ${cuerpo}`);
-      if ('Notification' in g && Notification.permission === 'granted') { try { new Notification(t.titulo || 'Recordatorio', { body: cuerpo }); } catch { /* sin permiso */ } }
+      if (g.Avisos) g.Avisos.enviar(t.titulo || 'Recordatorio', cuerpo);
     }
     if (typeof g.sonarAlarma === 'function') { try { g.sonarAlarma(); } catch { /* el audio puede no estar activo */ } }
     try { localStorage.setItem('agenda.avisados', JSON.stringify([...av].slice(-300))); } catch { /* sin espacio */ }
@@ -599,12 +599,42 @@
     }
     a.append(h('button', { class: 'ag-chip' + (ui.personalizar ? ' on' : ''), onclick: () => { ui.personalizar = !ui.personalizar; listaUI(); } }, 'Personalizar'));
     if (l.id === 'inbox') return;
-    a.append(h('button', { class: 'ag-chip', onclick: () => { ui.renombrar = true; accionesLista(); } }, 'Renombrar'), confirmable('Eliminar lista', '¿Seguro? Sus tareas pasan a Pendientes', () => {
-      const ahora = Date.now();
-      E.tareas.filter(t => t.lista === l.id).forEach(t => { t.lista = 'inbox'; t.t = ahora; });
-      E.listas = E.listas.filter(x => x.id !== l.id); E.borrados[l.id] = ahora;
-      ui.vista = { tipo: 'todas' }; ui.personalizar = false; guardar(); todo();
-    }));
+    a.append(h('button', { class: 'ag-chip', onclick: () => { ui.renombrar = true; accionesLista(); } }, 'Renombrar'), confirmable('Eliminar lista', '¿Seguro? Sus tareas pasan a Pendientes', () => eliminarLista(l)));
+  }
+  function eliminarLista(l) {
+    const ahora = Date.now();
+    E.tareas.filter(t => t.lista === l.id).forEach(t => { t.lista = 'inbox'; t.t = ahora; });
+    E.listas = E.listas.filter(x => x.id !== l.id); E.borrados[l.id] = ahora;
+    ui.vista = { tipo: 'todas' }; ui.personalizar = false; guardar(); todo();
+  }
+
+  // ---- menú de una lista: se abre manteniéndola pulsada (o con clic derecho)
+  function irALista(l) {
+    ui.vista = { tipo: 'lista', id: l.id }; ui.q = ''; if (refs.buscar) refs.buscar.value = '';
+    ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado');
+  }
+  const cerrarMenuCtx = () => { const m = document.getElementById('agMenuCtx'); if (m) m.remove(); };
+  function menuLista(l, x, y) {
+    cerrarMenuCtx();
+    const xs = listasOrdenadas(), i = xs.findIndex(q => q.id === l.id);
+    const eliminar = h('button', { class: 'ag-ctx-op peligro', role: 'menuitem', onclick: e => {
+      e.stopPropagation();
+      if (!eliminar.dataset.armado) { eliminar.dataset.armado = '1'; eliminar.lastChild.textContent = '¿Seguro? Sus tareas pasan a Pendientes'; return; }
+      cerrarMenuCtx(); eliminarLista(l);
+    } }, ico('i_limpieza'), h('span', null, 'Eliminar lista'));
+    const m = h('div', { class: 'ag-ctx', id: 'agMenuCtx', role: 'menu' },
+      h('div', { class: 'ag-ctx-tit' }, l.nombre),
+      h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.personalizar = true; todo(); } }, ico('i_arte'), h('span', null, 'Personalizar')),
+      l.id !== 'inbox' && h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.renombrar = true; todo(); } }, ico('i_lapiz'), h('span', null, 'Renombrar')),
+      h('div', { class: 'ag-ctx-par' },
+        h('button', { class: 'ag-ctx-op', disabled: i <= 0, onclick: e => { e.stopPropagation(); cerrarMenuCtx(); moverLista(l, -1); } }, ico('prev', 'sube'), h('span', null, 'Subir')),
+        h('button', { class: 'ag-ctx-op', disabled: i >= xs.length - 1, onclick: e => { e.stopPropagation(); cerrarMenuCtx(); moverLista(l, 1); } }, ico('sig', 'baja'), h('span', null, 'Bajar'))),
+      l.id !== 'inbox' && eliminar);
+    refs.raiz.append(m);
+    const r = m.getBoundingClientRect(), margen = 10;
+    m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
+    m.style.top = Math.max(margen, Math.min(y, innerHeight - r.height - margen)) + 'px';
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
   }
   const listasOrdenadas = () => [...E.listas].sort((a, b) => (a.orden || 0) - (b.orden || 0) || (a.t || 0) - (b.t || 0));
   function moverLista(l, delta) {
@@ -706,9 +736,17 @@
   function lado() {
     const c = refs.lado; if (!c) return;
     const cu = L.conteos(E), v = ui.vista;
-    const item = (tipo, nombre, icono, n, extra = {}) => h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''),
-      onclick: () => { ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado'); todo(); } },
-      extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n));
+    const item = (tipo, nombre, icono, n, extra = {}) => { let largo = false, tm = 0, sx = 0, sy = 0;
+      const esLista = tipo === 'lista';
+      const pulsacion = !esLista ? {} : {
+        onpointerdown: e => { largo = false; sx = e.clientX; sy = e.clientY; clearTimeout(tm); tm = setTimeout(() => { largo = true; menuLista(lista(extra.id), sx, sy); }, 480); },
+        onpointermove: e => { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(tm); },
+        onpointerup: () => clearTimeout(tm), onpointercancel: () => clearTimeout(tm), onpointerleave: () => clearTimeout(tm),
+        oncontextmenu: e => { e.preventDefault(); clearTimeout(tm); if (!document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); } },
+      };
+      return h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
+      onclick: () => { if (largo) { largo = false; return; } ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado'); todo(); } },
+      extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n)); };
     c.textContent = '';
     c.append(...[
       h('div', { class: 'ag-seccion' }, item('hoy', 'Hoy', 'hoy', cu.hoy), item('proximas', 'Próximas', 'prox', cu.proximas), item('todas', 'Todas', 'todas', cu.todas),
@@ -914,6 +952,8 @@
     iniciar(opciones = {}) {
       alCambiarActiva = opciones.alCambiarActiva || null;
       cargar(); construir();
+      document.addEventListener('pointerdown', e => { if (!e.target.closest('#agMenuCtx')) cerrarMenuCtx(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMenuCtx(); });
       document.addEventListener('click', e => { if (ui.nubeMenu && !e.target.closest('.ag-nube')) { ui.nubeMenu = false; if (abierta) lado(); } });
       refs.hoy = document.getElementById('hoy'); refrescarHoy();
       if (alCambiarActiva) alCambiarActiva(Agenda.activaTitulo());
