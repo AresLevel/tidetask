@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="img/app/icono-192.png">
-<link rel="stylesheet" href="agenda.css?v=40">
+<link rel="stylesheet" href="agenda.css?v=41">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -108,12 +108,16 @@
   .volver:hover { background: color-mix(in srgb, var(--vidrio) 60%, var(--acento)); }
   .volver svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .pildora {
-    display: inline-flex; align-items: center; gap: .6rem; max-width: min(92vw, 36rem); padding: .55rem 1.1rem; border-radius: 999px; cursor: pointer;
-    font: inherit; font-size: .85rem; color: var(--texto); background: var(--vidrio); border: 1px solid var(--borde); backdrop-filter: blur(14px);
-    transition: background .2s;
+    position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 40;
+    display: inline-flex; align-items: center; max-width: min(92vw, 36rem); border-radius: 999px; overflow: hidden;
+    font: inherit; font-size: .85rem; color: var(--texto); background: var(--ag-solid, var(--vidrio)); border: 1px solid var(--borde); backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.28); transition: background .2s;
   }
-  .pildora:hover { background: color-mix(in srgb, var(--vidrio) 60%, var(--acento)); }
   .pildora[hidden] { display: none; }
+  .pildora-ir { display: inline-flex; align-items: center; gap: .6rem; min-width: 0; padding: .6rem .5rem .6rem 1.1rem; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; }
+  .pildora-btn { display: grid; place-items: center; width: 2.6rem; align-self: stretch; border: 0; border-left: 1px solid var(--borde); background: none; cursor: pointer; color: inherit; }
+  .pildora-btn:hover, .pildora-ir:hover { background: color-mix(in srgb, var(--vidrio) 60%, var(--acento)); }
+  .pildora-btn svg { width: 1.05rem; height: 1.05rem; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
   .pildora span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .pildora .punto { width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--texto-suave); }
   .pildora.viva .punto { background: var(--texto); animation: latido 1.8s ease-in-out infinite; }
@@ -263,6 +267,7 @@
   }
   @media (max-width: 760px) {
     :root { --tabs-h: calc(4rem + var(--sab) + var(--kb)); }
+    .pildora { bottom: calc(var(--tabs-h) + .7rem); }
     /* con el teclado abierto la barra inferior se esconde (queda debajo): lo demás solo sube lo justo */
     body.teclado { --tabs-h: var(--kb); }
     body.teclado .tabs { display: none; }
@@ -302,7 +307,6 @@
 <main>
   <!-- Vista Hoy: las tareas son lo primero -->
   <section class="vista v-hoy" id="vistaHoy">
-    <button class="pildora" id="pildora" hidden><span class="punto"></span><span id="pildoraTxt"></span></button>
     <aside class="hoy" id="hoy" aria-label="Tareas de hoy"></aside>
   </section>
 
@@ -335,8 +339,14 @@
   </section>
 </main>
 
-<button class="volver" id="volver" aria-label="Volver a Hoy"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Hoy</button>
+<button class="volver" id="volver" aria-label="Volver a la Agenda"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Agenda</button>
 <div class="cierre" id="cierre" role="status" hidden></div>
+
+<!-- Mini-reloj: recuerda el enfoque en marcha desde cualquier pantalla (la Agenda es el centro; el reloj es secundario) -->
+<div class="pildora" id="pildora" role="group" aria-label="Enfoque en marcha" hidden>
+  <button class="pildora-ir" id="pildoraIr" aria-label="Abrir el reloj"><span class="punto"></span><span id="pildoraTxt"></span></button>
+  <button class="pildora-btn" id="pildoraBtn" aria-label="Pausar"><svg viewBox="0 0 24 24" id="pildoraIco"></svg></button>
+</div>
 
 <nav class="selector" id="selector" aria-label="Fondos"></nav>
 
@@ -357,8 +367,8 @@
 
 <!-- Barra de pestañas (solo en el teléfono) -->
 <nav class="tabs" id="tabs" aria-label="Navegación">
-  <button data-t="hoy"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Hoy</span></button>
   <button data-t="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Agenda</span></button>
+  <button data-t="hoy"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Hoy</span></button>
   <button data-t="enfoque"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span>Enfoque</span></button>
   <button data-t="ajustes"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Ajustes</span></button>
 </nav>
@@ -428,8 +438,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=40"></script>
-<script src="agenda.js?v=40"></script>
+<script src="nube.js?v=41"></script>
+<script src="agenda.js?v=41"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -700,8 +710,11 @@
   }
   // Mientras no estás en el reloj, una píldora recuerda que hay un enfoque (o un descanso) esperándote
   function pintarPildora(txt) {
-    const p = $('pildora'), ver = vista === 'hoy' && (enProgreso() || modo !== 'enfoque');
+    const p = $('pildora'), agenda = document.body.classList.contains('agenda-abierta');
+    const ver = (vista !== 'enfoque' || agenda) && (enProgreso() || modo !== 'enfoque');
     p.hidden = !ver; if (!ver) return;
+    $('pildoraIco').innerHTML = corriendo ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>';
+    $('pildoraBtn').setAttribute('aria-label', corriendo ? 'Pausar' : 'Continuar');
     if (!txt) { const s = Math.ceil(restante / 1000); txt = pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
     const t = Agenda.activaTitulo(), esEnfoque = modo === 'enfoque';
     p.classList.toggle('viva', corriendo);
@@ -716,11 +729,14 @@
     mostrarTitulo(); irA('enfoque');
     if (!corriendo) alternar();
   }
-  $('pildora').onclick = () => irA('enfoque');
-  $('volver').onclick = () => irA('hoy');
+  $('pildoraIr').onclick = () => { Agenda.cerrar(); irA('enfoque'); };
+  $('pildoraBtn').onclick = () => { alternar(); pintarPildora(); };
+  // La Agenda es el centro de la app: «volver» desde el reloj lleva a la Agenda
+  const irAAgenda = () => { irA('hoy'); Agenda.abrir(); };
+  $('volver').onclick = irAAgenda;
   $('hecha').onclick = () => {      // terminar la tarea a mitad de un enfoque lo da por cerrado
     Agenda.completarActiva(); ocultarCierre();
-    cambiarModo('enfoque'); irA('hoy');
+    cambiarModo('enfoque'); irAAgenda();
   };
   function cambiarModo(m) {
     musica(false); ambiente(false);
@@ -819,7 +835,7 @@
     cerrarPaneles();
     if (t === 'agenda') Agenda.abrir(); else { Agenda.cerrar(); irA(t); }
   });
-  new MutationObserver(pintarTabs).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-vista'] });
+  new MutationObserver(() => { pintarTabs(); pintarPildora(); }).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-vista'] });
   new MutationObserver(pintarTabs).observe($('ajustes'), { attributes: true, attributeFilter: ['class'] });
   pintarTabs();
 
@@ -830,7 +846,7 @@
     A.addListener('backButton', () => {
       if (document.querySelector('.panel.abierto')) { cerrarPaneles(); return; }
       if (Agenda.atras()) return;
-      if (vista === 'enfoque') { irA('hoy'); return; }
+      if (!Agenda.abierta()) { irAAgenda(); return; }
       A.minimizeApp();
     });
   })();
@@ -884,7 +900,7 @@
     if (document.body.classList.contains('agenda-abierta')) return;   // la agenda maneja su propio teclado
     if (e.target.closest('input, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Escape') { if (document.querySelector('.panel.abierto')) cerrarPaneles(); else if (vista === 'enfoque') irA('hoy'); return; }
+    if (e.key === 'Escape') { if (document.querySelector('.panel.abierto')) cerrarPaneles(); else if (vista === 'enfoque') irAAgenda(); return; }
     if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); return; }
     if (vista !== 'enfoque') return;
     if (e.code === 'Space') { e.preventDefault(); alternar(); }
@@ -922,6 +938,7 @@
   }
   const f0 = fondoParaModo(); if (f0 !== fondoActual.id) ponerFondo(f0, false);
   Agenda.iniciar({ alCambiarActiva: () => { ocultarCierre(); mostrarTitulo(); pintarPildora(); } });
+  Agenda.abrir();   // la Agenda es el centro de la app: se abre al arrancar (en el teléfono, su menú)
   mostrarTitulo();
   // Al abrir: un enfoque a medias devuelve al reloj; si no, se empieza por la lista de Hoy
   irA(enProgreso() ? 'enfoque' : 'hoy');

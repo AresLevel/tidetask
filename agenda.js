@@ -1198,6 +1198,7 @@
     refs.entrada = entrada;
     refs.centro = h('section', { class: 'ag-centro' },
       h('div', { class: 'ag-cab' }, h('button', { class: 'ag-mini menu', 'aria-label': 'Volver al menú', onclick: () => { ui.sel = null; refs.caja.classList.add('en-menu'); todo(); } }, ico('prev')), refs.titulo, refs.cuenta, h('span', { style: 'flex:1' }), refs.acciones,
+        h('button', { class: 'ag-mini ag-enf', 'aria-label': 'Enfoque libre', dataset: { tip: 'Enfoque libre' }, onclick: () => enfocar(null) }, ico('i_reloj')),
         h('button', { class: 'ag-mini', 'aria-label': 'Cerrar agenda', onclick: cerrar }, ico('cerrar'))),
       refs.nueva = h('div', { class: 'ag-nueva' }, h('span', { class: 'ag-mas' }, ico('mas')), entrada), refs.lista, refs.pie);
     refs.detalle = h('aside', { class: 'ag-detalle' });
@@ -1244,7 +1245,7 @@
       if (matchMedia('(max-width: 760px)').matches && !refs.caja.classList.contains('en-menu')) {
         ui.q = ''; refs.buscar.value = ''; ui.renombrar = false; ui.personalizar = false; refs.caja.classList.add('en-menu'); todo(); return true;
       }
-      cerrar(); return true;
+      return false;   // en el menú: no hay nada más atrás
     },
     abrir: () => abrir('menu'), cerrar, abierta: () => abierta,
     /** Abre la agenda con el detalle de una tarea. */
