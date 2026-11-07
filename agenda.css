@@ -293,3 +293,33 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 .hy-fila.hecha .hy-t { text-decoration: line-through; opacity: .55; }
 .hy-fila.hecha .ag-check { background: var(--acento); border-color: var(--acento); }
 .hy-fila.hecha .ag-check::after { content: ''; position: absolute; left: 50%; top: 46%; width: .3rem; height: .55rem; border: solid var(--acento-texto); border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
+
+/* ================= Teléfono ================= */
+@media (max-width: 760px) {
+  .agenda { padding: 0 0 var(--tabs-h, 4rem); }
+  .ag-caja, .ag-caja.con-detalle { height: 100%; }
+  .ag-lado { bottom: var(--tabs-h, 4rem); }
+  .hoy { max-height: calc(100dvh - var(--tabs-h, 4rem) - 7.5rem); padding: 1.2rem 1.1rem 1rem; border-radius: 1.4rem; }
+  .hoy .hy-cab { align-items: flex-start; }
+  .cierre { bottom: calc(var(--tabs-h, 4rem) + 1rem); max-width: 92vw; }
+  .ag-rut { grid-template-columns: repeat(7, minmax(0, 1fr)) 3rem; gap: .3rem; padding: .5rem .2rem; }
+  .ag-rut-n { grid-column: 1 / -1; }
+  .ag-rut.cab .ag-rut-n { display: none; }
+  .ag-celda { width: 100%; height: 2.7rem; }
+  .ag-iconos { grid-template-columns: repeat(auto-fill, minmax(2.8rem, 1fr)); }
+  .ag-color { width: 2.2rem; height: 2.2rem; }
+  .ag-paleta { gap: .6rem; }
+  .ag-resumen { gap: 1.1rem; }
+}
+@media (pointer: coarse) {
+  /* zona táctil de 44 px alrededor de los círculos de completar, sin cambiar su tamaño visual */
+  .ag-check::before { content: ''; position: absolute; inset: -.7rem; }
+  .ag-check.mini::before { inset: -.8rem; }
+  .ag-mini { width: 2.6rem; height: 2.6rem; }
+  .ag-play, .hy-play { width: 2.7rem; height: 2.7rem; }
+  .ag-fila, .hy-fila { padding-block: .8rem; }
+  .ag-nav { padding-block: .75rem; }
+  .ag-dia { min-width: 2.4rem; min-height: 2.4rem; }
+  .ag-cal-dia { min-height: 2.6rem; }
+  .hy-ver, .hy-libre { min-height: 2.6rem; }
+}

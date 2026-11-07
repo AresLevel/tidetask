@@ -2,10 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#1a2b42">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pomodoro">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>Pomodoro</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=8">
+<link rel="stylesheet" href="agenda.css?v=9">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -231,6 +238,47 @@
   body.zen .selector, body.zen .modos, body.zen .btn-sec, body.zen .info, body.zen .barra, body.zen .volver, body.zen .hecha-btn { opacity: 0; transition: opacity 1s; }
   body.zen .panel { opacity: 0; pointer-events: none; }
   body.zen { cursor: none; }
+
+  /* ================= Teléfono y pantallas táctiles ================= */
+  .tabs, .solo-movil { display: none; }
+  html { -webkit-tap-highlight-color: transparent; }
+  button, a, input, textarea { touch-action: manipulation; }
+  @supports (height: 100dvh) { html, body, main { height: 100dvh; } }
+  @media (hover: none) { [data-tip]::after { display: none; } }
+  @media (pointer: coarse) {
+    .btn-sec { width: 3.1rem; height: 3.1rem; }
+    .chip, .ag-chip { min-height: 2.5rem; padding-inline: .95rem; }
+    .paso button { width: 2.5rem; height: 2.5rem; }
+    .ajuste { min-height: 2.9rem; }
+    .sw { width: 3rem; height: 1.75rem; }
+    .sw::after { width: 1.39rem; height: 1.39rem; top: .18rem; left: .18rem; }
+    .sw.on::after { transform: translateX(1.25rem); }
+    .mini button { width: 2.4rem; height: 2.4rem; }
+    input, textarea { font-size: 16px !important; }
+    body.zen .tabs { opacity: 1; }
+  }
+  @media (max-width: 760px) {
+    :root { --tabs-h: calc(4rem + env(safe-area-inset-bottom)); }
+    main { padding-bottom: var(--tabs-h); }
+    .reloj { font-size: clamp(5.5rem, 27vw, 9rem); }
+    .modos button { padding: .55rem 1rem; }
+    .selector, .volver, .solo-escritorio { display: none !important; }
+    .solo-movil { display: flex; }
+    .barra { top: max(.9rem, env(safe-area-inset-top)); right: .9rem; }
+    .barra .btn-sec:not([data-panel="musica"]) { display: none; }
+    /* música y ajustes: hojas que suben desde abajo */
+    .panel { top: auto; left: 0; right: 0; bottom: var(--tabs-h); width: 100%; max-height: 72dvh; border-radius: 1.4rem 1.4rem 0 0; padding: 1.2rem 1.2rem 1.4rem; z-index: 25;
+             transform: translateY(24px); overflow-y: auto; overscroll-behavior: contain; }
+    .panel.abierto { transform: none; }
+    .toast { bottom: calc(var(--tabs-h) + 1rem); }
+    .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); height: var(--tabs-h); padding-bottom: env(safe-area-inset-bottom);
+            background: var(--vidrio); border-top: 1px solid var(--borde); backdrop-filter: blur(22px); }
+    .tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; border: 0; background: none; cursor: pointer; font-size: .68rem; letter-spacing: .02em; color: var(--texto-suave); transition: color .2s; }
+    .tabs button svg { width: 1.4rem; height: 1.4rem; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+    .tabs button.on { color: var(--texto); }
+    .tabs button.on svg { transform: translateY(-1px) scale(1.08); }
+    .tabs button.on span { font-weight: 600; }
+  }
 </style>
 </head>
 <body data-vista="hoy">
@@ -295,6 +343,14 @@
   </button>
 </div>
 
+<!-- Barra de pestañas (solo en el teléfono) -->
+<nav class="tabs" id="tabs" aria-label="Navegación">
+  <button data-t="hoy"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Hoy</span></button>
+  <button data-t="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Agenda</span></button>
+  <button data-t="enfoque"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span>Enfoque</span></button>
+  <button data-t="ajustes"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Ajustes</span></button>
+</nav>
+
 <!-- Música -->
 <aside class="panel solo-enfoque" id="musica">
   <h2>Música</h2>
@@ -348,7 +404,11 @@
     <div class="ajuste"><span>Cambiar de escena al descansar</span><button class="sw" data-acc="sw" data-k="fondoDescansoOn" role="switch"></button></div>
     <div class="mini" id="descansoSel"></div>
   </div>
-  <p class="nota">Atajos: Espacio inicia/pausa · R reinicia · S salta · F pantalla completa · Esc cierra paneles.</p>
+  <div class="grupo solo-movil">
+    <h2>Fondo</h2>
+    <div class="mini" id="fondoSel"></div>
+  </div>
+  <p class="nota solo-escritorio">Atajos: Espacio inicia/pausa · R reinicia · S salta · F pantalla completa · Esc cierra paneles.</p>
 </aside>
 
 <div class="agenda" id="agenda"></div>
@@ -356,8 +416,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=8"></script>
-<script src="agenda.js?v=8"></script>
+<script src="nube.js?v=9"></script>
+<script src="agenda.js?v=9"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -409,7 +469,7 @@
     const nueva = capas[capa ^= 1], vieja = capas[capa ^ 1];
     nueva.style.backgroundImage = `url(${url(tema.id)})`;
     nueva.classList.add('activo'); vieja.classList.remove('activo');
-    document.querySelectorAll('#selector button').forEach(b => b.classList.toggle('on', b.dataset.id === tema.id));
+    document.querySelectorAll('#selector button, #fondoSel button').forEach(b => b.classList.toggle('on', b.dataset.id === tema.id));
     if (corriendo && modo === 'enfoque') ambiente(true);   // la escena puede cambiar el sonido sugerido
   }
   function fondoParaModo() {
@@ -425,6 +485,7 @@
     m.removeAttribute('data-tip'); m.title = ''; m.dataset.fd = f.id;
     m.onclick = () => { cfg.fondoDescanso = f.id; guardarCfg(); pintarAjustes(); if (modo !== 'enfoque') ponerFondo(fondoParaModo(), false); };
     $('descansoSel').appendChild(m);
+    const fm = b.cloneNode(); fm.removeAttribute('data-tip'); fm.onclick = () => ponerFondo(f.id); $('fondoSel').appendChild(fm);
   });
 
   // ============ Audio: alarma y sonido ambiente (sintetizados, sin archivos) ============
@@ -682,7 +743,7 @@
   function cerrarPaneles() { document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto')); document.querySelectorAll('[data-panel]').forEach(b => b.classList.remove('on')); }
   document.querySelectorAll('[data-panel]').forEach(b => b.onclick = () => abrirPanel(b.dataset.panel));
   $('verHistorial').onclick = () => { cerrarPaneles(); Agenda.abrirHistorial(); };
-  document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra')) cerrarPaneles(); });
+  document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra, .tabs')) cerrarPaneles(); });
 
   // ============ Recordatorios de tareas (opt-in) ============
   window.recordatoriosActivos = () => !!cfg.recordar;
@@ -691,6 +752,22 @@
     if (alTerminar && !('Notification' in window && Notification.permission === 'default')) alTerminar();
   }
   window.activarRecordatorios = alTerminar => { cfg.recordar = true; guardarCfg(); pintarAjustes(); pedirPermisoRecordar(alTerminar); aviso('Recordatorios activados. Avisan mientras esta página esté abierta.'); };
+
+  // ============ Barra de pestañas (teléfono) ============
+  function pintarTabs() {
+    const ajustes = $('ajustes').classList.contains('abierto'), agenda = document.body.classList.contains('agenda-abierta');
+    const activa = ajustes ? 'ajustes' : agenda ? 'agenda' : vista;
+    document.querySelectorAll('#tabs button').forEach(b => { const on = b.dataset.t === activa; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  }
+  document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+    const t = b.dataset.t;
+    if (t === 'ajustes') { abrirPanel('ajustes'); return; }
+    cerrarPaneles();
+    if (t === 'agenda') Agenda.abrir(); else { Agenda.cerrar(); irA(t); }
+  });
+  new MutationObserver(pintarTabs).observe(document.body, { attributes: true, attributeFilter: ['class', 'data-vista'] });
+  new MutationObserver(pintarTabs).observe($('ajustes'), { attributes: true, attributeFilter: ['class'] });
+  pintarTabs();
 
   // ============ Ajustes ============
   function pintarAjustes() {
@@ -754,6 +831,8 @@
     clearTimeout(idle);
     if (corriendo && vista === 'enfoque') idle = setTimeout(() => { if (!document.body.classList.contains('agenda-abierta')) document.body.classList.add('zen'); }, 4000);
   });
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
   // ============ Arranque: recupera la sesión si se cerró o recargó la página ============
   ponerFondo(fondoElegido);

@@ -879,7 +879,7 @@
   function abrir() {
     abierta = true; refs.raiz.classList.add('abierto'); document.body.classList.add('agenda-abierta');
     todo(); sincronizar(false);
-    setTimeout(() => refs.entrada.focus(), 200);
+    if (matchMedia('(pointer: fine)').matches) setTimeout(() => refs.entrada.focus(), 200);
   }
   function cerrar() {
     abierta = false; refs.raiz.classList.remove('abierto'); document.body.classList.remove('agenda-abierta'); calAbierto = false;
