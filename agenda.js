@@ -704,6 +704,9 @@
       h('div', { class: 'ag-ctx-tit' }, l.nombre),
       h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.personalizar = true; todo(); } }, ico('i_arte'), h('span', null, 'Personalizar')),
       l.id !== 'inbox' && h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.renombrar = true; todo(); } }, ico('i_lapiz'), h('span', null, 'Renombrar')),
+      l.id !== 'inbox' && E.grupos.length > 0 && h('div', { class: 'ag-ctx-tit' }, 'Mover a'),
+      l.id !== 'inbox' && grupoDe(l) && h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); l.grupo = ''; l.t = Date.now(); guardar(); todo(); } }, ico('i_estrella'), h('span', null, 'Sin grupo')),
+      l.id !== 'inbox' && gruposOrdenados().filter(g => g.id !== l.grupo).map(g => h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); colocarEnGrupo(l, g.id); } }, ico('carpeta'), h('span', null, g.nombre))),
       l.id !== 'inbox' && eliminar,
       h('div', { class: 'ag-ctx-pista' }, 'Para cambiar su lugar o meterla en un grupo, mantenla pulsada y arrástrala'));
     refs.raiz.append(m);
