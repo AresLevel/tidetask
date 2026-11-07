@@ -9,7 +9,7 @@ VERT = "--v" in sys.argv
 CW, CH = (1080, 2160) if VERT else (W, H)     # tamaño del lienzo visible
 DY = CH - H if VERT else 0                    # cuánto cielo se añade por encima
 X0 = {"amarillo": 840, "azul": 380, "rosado": 100, "verde": 420, "morado": 840, "naranja": 480,
-      "turquesa": 420, "rojo": 420, "aurora": 420, "niebla": 420}
+      "turquesa": 330, "rojo": 330, "aurora": 420, "niebla": 420}
 VX = 0                                        # borde izquierdo visible (se fija por escena)
 AQUI = os.path.dirname(os.path.abspath(__file__))
 OUT = os.environ.get("ACUARELA_OUT") or os.path.join(AQUI, "img")
@@ -448,16 +448,41 @@ def naranja():
 
 
 # ---------------------------------------------------------------- TURQUESA: laguna vista desde arriba (aérea)
-def vista_palmera(e, x, y, s):
+def hoja_palma(e, x, y, a, L, col, op=.88):
+    """Una fronda vista desde arriba: hoja alargada y arqueada que se afina en la punta."""
     r = e.r
+    dx, dy = math.cos(a), math.sin(a)
+    px, py = -dy, dx
+    bend = r.uniform(-.2, .2) * L
+    w = L * r.uniform(.09, .14)
+
+    def P(t, off):
+        return (x + dx * L * t + px * (bend * t * t + off), y + dy * L * t + py * (bend * t * t + off))
+    pts = [P(0, 0), P(.3, -w), P(.62, -w * 1.05), P(.88, -w * .4), P(1, 0), P(.85, w * .4), P(.6, w), P(.28, w * .9)]
+    return [e.p(suave(pts, True), col, op, False, 1), e.linea(f"M{n(x)} {n(y)} L{n(P(.95, 0)[0])} {n(P(.95, 0)[1])}", "#d8f2b0", max(1.5, L * .015), .45)]
+
+
+def vista_palmera(e, x, y, s, lean=(0, 0)):
+    r = e.r
+    cols = ["#1f7a52", "#2f9a68", "#3fb27a", "#2a8a5a"]
+    fr = r.randint(7, 11)
+    base = r.uniform(0, 6.28)
+    sombra, hojas = [], []
+    for i in range(fr):
+        a = base + 2 * math.pi * i / fr + r.uniform(-.28, .28)
+        L = s * r.uniform(.6, 1.12)
+        hojas += hoja_palma(e, x, y, a, L, r.choice(cols))
+        sombra += hoja_palma(e, x + lean[0], y + lean[1], a, L * .95, "#7a6a3a", .28)[:1]
+    return sombra, hojas + [e.circ(x, y, s * .09, "#6b4a35", .95), e.circ(x - 3, y - 3, s * .05, "#8a6a4a", .8)]
+
+
+def sombrilla(e, x, y, s):
     it = []
-    for i in range(10):
-        a = 2 * math.pi * i / 10 + r.uniform(-.12, .12)
-        L = s * r.uniform(.8, 1.05)
-        ex, ey = x + math.cos(a) * L, y + math.sin(a) * L * .92
-        mx, my = x + math.cos(a + .25) * L * .55, y + math.sin(a + .25) * L * .5
-        it.append(e.linea(f"M{n(x)} {n(y)} Q{n(mx)} {n(my)} {n(ex)} {n(ey)}", r.choice(["#1f7a52", "#2f9a68", "#3fb27a"]), max(5, s * .11), .85))
-    it.append(e.circ(x, y, s * .1, "#6b4a35", .95))
+    for i in range(8):
+        a0, a1 = 2 * math.pi * i / 8, 2 * math.pi * (i + 1) / 8
+        it.append(e.p(f"M{n(x)} {n(y)} L{n(x + math.cos(a0) * s)} {n(y + math.sin(a0) * s)} L{n(x + math.cos(a1) * s)} {n(y + math.sin(a1) * s)} Z",
+                      "#e8453c" if i % 2 == 0 else "#fff8ea", .95, False, 1))
+    it.append(e.circ(x, y, s * .06, "#3a2a1a", .9))
     return it
 
 
@@ -466,77 +491,153 @@ def turquesa():
     r = e.r
     e.g([e.full(e.grad([(0, "#0a7f94"), (.5, "#16aab8"), (1, "#4fd2cf")], 1, 1))])
     e.g([e.p(e.blob(r.uniform(0, W), r.uniform(-DY, H), r.uniform(200, 440), r.uniform(120, 280), 9, .25), r.choice(["#0b6f8a", "#1cb6c2", "#7fe6df"]), .3, False) for _ in range(16)])
-    # aguas someras y bancos de arena alrededor de la isla
-    e.g([e.p(e.blob(1000, 540, 700, 360, 11, .12), "#79e0d8", .75, False), e.p(e.blob(1000, 540, 520, 270, 11, .12), "#a9f0e0", .85, False)], mult=False)
-    for (x, y, rx, ry) in ((380, 840, 200, 90), (1620, 230, 230, 100), (1560, 900, 260, 110), (330, 190, 150, 70)):
-        e.g([e.p(e.blob(x, y, rx * 1.5, ry * 1.6, 9, .15), "#8fe8df", .6, False), e.p(e.blob(x, y, rx, ry, 9, .18), "#f3dfaa", .95, False)], mult=False)
-    e.g([e.p(e.blob(1000, 545, 360, 175, 11, .14), "#f3dfaa", .98, False), e.p(e.blob(990, 535, 250, 110, 11, .15), "#fff1cf", .85, False)], mult=False)
-    e.g([e.p(e.blob(1010, 520, 215, 100, 10, .14), "#6cbf7a", .9, False), e.p(e.blob(1000, 515, 140, 62, 9, .16), "#3f9a68", .55, False)], mult=False)
-    palmas = []
-    for (x, y, s) in ((920, 505, 125), (1100, 545, 105), (1030, 465, 92)):
-        palmas += vista_palmera(e, x, y, s)
-    e.g(palmas, "fino", mult=False)
-    # lancha vista desde arriba con su estela
-    bx, by, ang = 520, 360, -18
-    e.g([e.p(e.blob(bx - 250, by + 40, 280, 14, 8, .25), "#ffffff", .55, False), e.p(e.blob(bx - 190, by + 20, 200, 8, 8, .25), "#ffffff", .5, False)], "fino", mult=False)
-    e.g([f'<g transform="rotate({ang} {bx} {by})"><ellipse cx="{bx}" cy="{by}" rx="78" ry="26" fill="#8a4b2c" fill-opacity=".95"/>'
-         f'<ellipse cx="{bx + 6}" cy="{by}" rx="58" ry="15" fill="#e9c48a" fill-opacity=".95"/><circle cx="{bx - 16}" cy="{by}" r="9" fill="#e8453c" fill-opacity=".9"/></g>'], "fino", mult=False)
-    # destellos del sol sobre el agua
+    # arrecife: manchas oscuras de coral bajo el agua
+    e.g([e.p(e.blob(x, y, rx, ry, 9, .3), "#0a6a80", .45, False) for (x, y, rx, ry) in ((1500, 760, 240, 120), (1700, 640, 160, 90), (360, 330, 220, 100), (200, 520, 130, 80), (1420, 160, 200, 80))], mult=False)
+    # aguas someras y bancos de arena (formas irregulares, nada centrado)
+    e.g([e.p(e.blob(930, 560, 760, 380, 13, .2, .25), "#79e0d8", .75, False), e.p(e.blob(900, 560, 590, 290, 13, .22, .25), "#a9f0e0", .85, False)], mult=False)
+    for (x, y, rx, ry, rot) in ((1640, 250, 170, 70, .3), (360, 880, 130, 60, -.4), (1580, 930, 120, 50, .2)):
+        e.g([e.p(e.blob(x, y, rx * 1.6, ry * 1.8, 9, .2, rot), "#8fe8df", .6, False), e.p(e.blob(x, y, rx, ry, 9, .25, rot), "#f3dfaa", .95, False)], mult=False)
+    e.g([e.p(e.blob(880, 560, 440, 190, 14, .24, .3), "#f3dfaa", .98, False), e.p(e.blob(830, 535, 300, 120, 12, .26, .3), "#fff1cf", .85, False)], mult=False)
+    e.g([e.p(e.blob(790, 520, 220, 88, 11, .25, .32), "#6cbf7a", .9, False), e.p(e.blob(1060, 600, 80, 36, 8, .25), "#6cbf7a", .85, False),
+         e.p(e.blob(730, 540, 130, 50, 9, .25), "#3f9a68", .5, False)], mult=False)
+    # en la versión vertical, más mar por arriba: islotes con palmera y un velero visto desde arriba
+    if DY:
+        for (fx_, fy_, k_) in ((.30, .22, 1.0), (.72, .52, .8), (.38, .86, .7)):
+            ix, iy = VX + CW * fx_, -DY * fy_
+            e.g([e.p(e.blob(ix, iy, 190 * k_, 100 * k_, 9, .2, r.uniform(-.4, .4)), '#8fe8df', .6, False), e.p(e.blob(ix, iy, 120 * k_, 62 * k_, 9, .25), '#f3dfaa', .95, False)], mult=False)
+            sh_, hj_ = vista_palmera(e, ix, iy, 70 * k_, (16, 10))
+            e.g(sh_, 'fino')
+            e.g(hj_, 'fino', mult=False)
+        vx_, vy_ = VX + CW * .68, -DY * .2
+        e.g([e.p(e.blob(vx_ - 190, vy_ + 26, 230, 11, 8, .25), '#ffffff', .5, False)], 'fino', mult=False)
+        e.g([f'<g transform="rotate(-8 {n(vx_)} {n(vy_)})"><ellipse cx="{n(vx_)}" cy="{n(vy_)}" rx="70" ry="20" fill="#fff8ea" fill-opacity=".95"/><path d="M{n(vx_ - 40)} {n(vy_)} L{n(vx_ + 50)} {n(vy_ - 12)} L{n(vx_ + 50)} {n(vy_ + 12)} Z" fill="#e8453c" fill-opacity=".92"/></g>'], 'fino', mult=False)
+    # rocas en la orilla
+    e.g([e.p(e.blob(x, y, s, s * .7, 7, .3), c, .92, False) for (x, y, s, c) in ((1280, 640, 26, "#8a8f94"), (1325, 665, 17, "#a9adb0"), (520, 590, 20, "#8a8f94"), (1210, 470, 14, "#a9adb0"))], "fino", mult=False)
+    # muelle de madera hacia la izquierda con lancha amarrada
+    tab = []
+    for i in range(16):
+        t = i / 15
+        x = 520 - t * 250
+        y = 680 + t * 110
+        tab.append(f'<g transform="rotate(-24 {n(x)} {n(y)})"><rect x="{n(x - 6)}" y="{n(y - 24)}" width="14" height="48" fill="#8a5a34" fill-opacity=".95"/></g>')
+    e.g(tab, "fino", mult=False)
+    e.g([f'<g transform="rotate(-62 190 860)"><ellipse cx="190" cy="860" rx="70" ry="24" fill="#8a4b2c" fill-opacity=".95"/>'
+         f'<ellipse cx="196" cy="860" rx="52" ry="14" fill="#e9c48a" fill-opacity=".95"/></g>'], "fino", mult=False)
+    # toalla y sombrilla
+    e.g([f'<g transform="rotate(-12 1010 590)"><rect x="960" y="560" width="100" height="56" fill="#2f7f8f" fill-opacity=".9"/><rect x="960" y="574" width="100" height="10" fill="#fff8ea" fill-opacity=".8"/></g>'], "fino", mult=False)
+    e.g(sombrilla(e, 1120, 520, 62), "fino", mult=False)
+    # palmeras de distinto tamaño, torcidas y desparejas
+    sombras, copas = [], []
+    for (x, y, s, ln) in ((700, 560, 175, (60, 40)), (905, 505, 120, (40, 30)), (1015, 640, 80, (24, 16)), (610, 610, 70, (22, 14)), (810, 650, 52, (18, 12)), (1170, 590, 60, (20, 14))):
+        sh, hj = vista_palmera(e, x, y, s, ln)
+        sombras += sh
+        copas += hj
+    e.g(sombras, "fino")
+    e.g(copas, "fino", mult=False)
+    # una lancha a lo lejos con su estela
+    bx, by = 1560, 440
+    e.g([e.p(e.blob(bx + 170, by + 38, 210, 12, 8, .25), "#ffffff", .55, False), e.p(e.blob(bx + 120, by + 24, 150, 7, 8, .25), "#ffffff", .5, False)], "fino", mult=False)
+    e.g([f'<g transform="rotate(-14 {bx} {by})"><ellipse cx="{bx}" cy="{by}" rx="54" ry="19" fill="#fff8ea" fill-opacity=".95"/><ellipse cx="{bx - 4}" cy="{by}" rx="38" ry="10" fill="#2f7f8f" fill-opacity=".9"/></g>'], "fino", mult=False)
     e.g([e.linea(f"M{n(x)} {n(y)} q18 -6 36 0 q18 6 36 0", "#e6fffb", 3, r.uniform(.3, .6)) for x, y in ((r.uniform(0, W), r.uniform(-DY, H)) for _ in range(150))], "fino", mult=False)
     e.g(e.salpicar(30, "#ffffff", 0, -DY, W, H, 5, .6), "fino", mult=False)
     return e
 
 
-# ---------------------------------------------------------------- ROJO: mirando hacia arriba entre las copas del otoño
-def tronco_fuga(e, bx, ancho, cx, cy, c, op):
-    pts_i, pts_d = [], []
-    for k in range(9):
-        t = k / 8
-        x = bx + (cx + (bx - cx) * .3 - bx) * t * t + (cx - bx) * .12 * t
-        y = H + 80 + (cy + 40 - H - 80) * t
-        w = ancho * (1 - t * .85)
-        pts_i.append((x - w / 2, y))
-        pts_d.append((x + w / 2, y))
-    return e.p(suave(pts_i + pts_d[::-1], True), c, op)
+# ---------------------------------------------------------------- ROJO: una banca bajo el arce, con el parque desenfocado detrás
+def hoja_arce(e, x, y, s, rot, col, op=.88):
+    pts = []
+    for i in range(10):
+        a = rot + i * math.pi / 5
+        rad = s if i == 0 else (s * .92 if i in (2, 8) else s * .74) if i % 2 == 0 else s * .42
+        pts.append((x + math.cos(a) * rad, y + math.sin(a) * rad))
+    d = "M" + " L".join(f"{n(px)} {n(py)}" for px, py in pts) + "Z"
+    return [e.p(d, col, op, False, 1), e.linea(f"M{n(x)} {n(y)} L{n(x - math.cos(rot) * s * .55)} {n(y - math.sin(rot) * s * .55)}", "#6a3a20", max(1.5, s * .06), .7)]
+
+
+ROJOS = ["#c8281e", "#a21c24", "#e5502a", "#d8321e", "#f08a2a"]
 
 
 def rojo():
     e = Esc(83, "#fbf1e6")
     r = e.r
-    cx, cy = 960, 330
-    e.g([e.full(e.grad([(0, "#f2a77a"), (.5, "#f9c999"), (1, "#fde3b4")]))])
-    halo(e, cx, cy, 460, "#fff6dc", 1)
-    e.g([f'<polygon points="{cx - 40},{cy} {cx + 40},{cy} {cx + 420},{H + 60} {cx - 420},{H + 60}" fill="#fff3cf" fill-opacity=".3"/>'], "brillo", mult=False)
-    # troncos que se juntan hacia arriba (visto desde abajo)
-    for bx, a in ((90, 190), (420, 140), (760, 100), (1160, 100), (1500, 140), (1830, 190)):
-        e.g([tronco_fuga(e, bx + r.uniform(-30, 30), a, cx, cy, "#4a2f2a", .88)], "fino", mult=False)
-    # ramas hacia el centro
-    ramas = []
-    for _ in range(14):
-        sx = r.uniform(150, 1770)
-        sy = r.uniform(300, 760)
-        d = 1 if sx < cx else -1
-        ramas.append(e.linea(f"M{n(sx)} {n(sy)} q{n(d * r.uniform(60, 160))} {n(-r.uniform(40, 110))} {n(d * r.uniform(150, 300))} {n(-r.uniform(80, 200))}", "#4a2f2a", r.uniform(5, 14), .8))
-    e.g(ramas, "fino", mult=False)
-    # copas alrededor del claro de cielo
+    e.g([e.full(e.grad([(0, "#f2a77a"), (.45, "#f9c999"), (1, "#fde3b4")]))])
+    # parque desenfocado al fondo (bokeh y copas lejanas)
+    e.g([e.p(e.blob(r.uniform(0, W), r.uniform(-DY, 640), r.uniform(120, 260), r.uniform(80, 180), 9, .3), r.choice(ROJOS + ["#f2b134"]), .4, False) for _ in range(24)], "brillo", mult=False)
+    e.g([e.circ(r.uniform(0, W), r.uniform(-DY, 800), r.uniform(26, 80), r.choice(["#ffd88a", "#ff9a4a", "#ff6a4a", "#fff0c0"]), r.uniform(.25, .5)) for _ in range(34)], "bokeh", mult=False)
+    e.g([f'<polygon points="500,{-DY - 50} 700,{-DY - 50} 1000,{H} 640,{H}" fill="#fff3cf" fill-opacity=".28"/>',
+         f'<polygon points="900,{-DY - 50} 1040,{-DY - 50} 1500,{H} 1180,{H}" fill="#fff3cf" fill-opacity=".2"/>'], "brillo", mult=False)
+    # suelo con alfombra de hojas
+    e.g([e.p(e.cresta(780, 22, 260), "#d9964a", .95)], mult=False)
+    e.g([e.p(e.cresta(880, 20, 260), "#e8b36a", .95)], mult=False)
+    suelo = []
+    for _ in range(300):
+        y = r.uniform(800, H + 20)
+        k = (y - 780) / (H - 780)
+        suelo += hoja_arce(e, r.uniform(0, W), y, r.uniform(8, 20) * (.5 + k), r.uniform(0, 6.28), r.choice(ROJOS + ["#f2b134"]), r.uniform(.55, .85))
+    e.g(suelo, "fino", mult=False)
+    # tronco grande a la derecha: se pierde hacia arriba
+    izq, der = [], []
+    for k in range(10):
+        t = k / 9
+        y = -DY - 60 + (900 + DY + 60) * t
+        w = 190 + 120 * (t ** 3) + 14 * math.sin(t * 9)
+        c = 1230 + 14 * math.sin(t * 5)
+        izq.append((c - w / 2, y))
+        der.append((c + w / 2, y))
+    e.g([e.p(suave(izq + der[::-1], True), "#5a3a2e", .96)], "fino", mult=False)
+    corteza = []
+    for _ in range(46):
+        t0 = r.uniform(0, .8)
+        y0 = -DY + (900 + DY) * t0
+        x0 = r.uniform(1130, 1330)
+        corteza.append(e.linea(f"M{n(x0)} {n(y0)} q{n(r.uniform(-8, 8))} 60 {n(r.uniform(-6, 6))} {n(r.uniform(90, 200))}", r.choice(["#3a2420", "#8a6a54", "#2a1810"]), r.uniform(2, 6), .45))
+    for sg in (-1, 1):
+        for _ in range(3):
+            corteza.append(e.linea(f"M{n(1230 + sg * r.uniform(110, 140))} 880 q{n(sg * 70)} 20 {n(sg * r.uniform(150, 260))} {n(r.uniform(80, 120))}", "#5a3a2e", r.uniform(16, 34), .9))
+    e.g(corteza, "fino", mult=False)
+    # rama larga hacia la banca
+    e.g([e.linea("M1180 330 Q1000 250 760 170", "#4a2f2a", 48, .95), e.linea("M1180 330 Q1000 250 760 170", "#6a4a3a", 14, .6),
+         e.linea("M980 250 Q900 330 840 380", "#4a2f2a", 18, .9), e.linea("M860 195 Q800 140 720 130", "#4a2f2a", 14, .9)], "fino", mult=False)
+    # copa
     copas = []
-    for _ in range(90):
-        a = r.uniform(0, 2 * math.pi)
-        d = r.uniform(300, 1000)
-        x, y = cx + math.cos(a) * d * 1.75, cy + math.sin(a) * d * .95
-        s = r.uniform(80, 210) * (.7 + d / 1100)
-        copas.append(e.p(e.blob(x, y, s * 1.2, s * .85, 8, .28), r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24", "#f2b134"]), r.uniform(.5, .78), False))
-    for _ in range(max(0, int(DY / 38))):
-        x, y = r.uniform(VX - 60, VX + CW + 60), r.uniform(-DY, 60)
-        s = r.uniform(110, 230)
-        copas.append(e.p(e.blob(x, y, s * 1.2, s * .85, 8, .28), r.choice(["#c8281e", "#e5502a", "#f08a2a", "#a21c24", "#f2b134"]), r.uniform(.55, .8), False))
+    for _ in range(46):
+        x, y = r.uniform(520, 1920), r.uniform(-DY - 40, 360)
+        s = r.uniform(120, 250)
+        copas.append(e.p(e.blob(x, y, s * 1.2, s * .8, 8, .28), r.choice(ROJOS + ["#f2b134"]), r.uniform(.55, .8), False))
+    for _ in range(int(DY / 45)):
+        x, y = r.uniform(VX - 60, VX + CW + 60), r.uniform(-DY - 40, 40)
+        s = r.uniform(120, 230)
+        copas.append(e.p(e.blob(x, y, s * 1.2, s * .85, 8, .28), r.choice(ROJOS + ["#f2b134"]), r.uniform(.6, .85), False))
     e.g(copas)
+    colgantes = []
+    for _ in range(46):
+        colgantes += hoja_arce(e, r.uniform(500, 1500), r.uniform(230, 520), r.uniform(26, 50), r.uniform(0, 6.28), r.choice(ROJOS + ["#f2b134"]))
+    e.g(colgantes, "fino", mult=False)
+    # banca de parque
+    madera, oscuro = "#8a5a34", "#3a2a22"
+    e.g([e.linea("M470 700 L470 930", oscuro, 16, .95), e.linea("M900 700 L900 930", oscuro, 16, .95),
+         e.linea("M470 880 L440 960", oscuro, 12, .95), e.linea("M900 880 L930 960", oscuro, 12, .95),
+         e.linea("M520 880 L500 940", oscuro, 10, .8), e.linea("M850 880 L870 940", oscuro, 10, .8)], "fino", mult=False)
+    tablas = []
+    for y, h_ in ((720, 34), (772, 34)):
+        tablas.append(e.p(f"M455 {y} L915 {y} L915 {y + h_} L455 {y + h_} Z", madera, .97, True, 2))
+    for y, d in ((850, 0), (884, 0), (918, 0)):
+        tablas.append(e.p(f"M440 {y} L930 {y} L944 {y + 26} L426 {y + 26} Z", "#9a6a40" if y == 884 else madera, .97, True, 2))
+    e.g(tablas, "fino", mult=False)
+    sobre = []
+    for _ in range(22):
+        sobre += hoja_arce(e, r.uniform(470, 900), r.uniform(850, 925), r.uniform(14, 26), r.uniform(0, 6.28), r.choice(ROJOS + ["#f2b134"]))
+    e.g(sobre, "fino", mult=False)
     # hojas cayendo
     caen = []
-    for _ in range(130):
-        x, y = r.uniform(0, W), r.uniform(-DY, H)
-        caen.append(e.p(e.blob(x, y, r.uniform(7, 16), r.uniform(4, 9), 6, .2, r.uniform(0, 3)), r.choice(["#d8321e", "#f08a2a", "#f2b134"]), .78, False))
+    for _ in range(46):
+        caen += hoja_arce(e, r.uniform(0, W), r.uniform(-DY, 880), r.uniform(18, 34), r.uniform(0, 6.28), r.choice(ROJOS + ["#f2b134"]), .88)
     e.g(caen, "fino", mult=False)
+    # hojas grandes desenfocadas en primer plano
+    gr = []
+    for (x, y, s) in ((150, 980, 150), (1750, 880, 120), (1010, -DY + 200, 140)):
+        gr += hoja_arce(e, x, y, s, r.uniform(0, 6.28), r.choice(ROJOS), .8)
+    e.g(gr, "bokeh", mult=False)
     return e
 
 
@@ -552,33 +653,75 @@ def pino(e, x, base, alto, c, op):
     return e.p(suave(der + izq, True), c, op, False)
 
 
+def llama(fx, fy, s):
+    return (f"M{n(fx - 38 * s)} {n(fy)} C{n(fx - 52 * s)} {n(fy - 60 * s)} {n(fx - 12 * s)} {n(fy - 90 * s)} {n(fx - 4 * s)} {n(fy - 160 * s)} "
+            f"C{n(fx + 22 * s)} {n(fy - 96 * s)} {n(fx + 58 * s)} {n(fy - 56 * s)} {n(fx + 38 * s)} {n(fy)} Z")
+
+
 def aurora():
     e = Esc(97, "#eef4f4")
     r = e.r
-    hz = 660
-    e.g([e.full(e.grad([(0, "#06122e"), (.55, "#0f3a52"), (1, "#1d6a72")]))])
-    e.g([e.circ(r.uniform(500, 1420), r.uniform(60, 560), r.uniform(1.4, 3.4), "#f4fffb", r.uniform(.5, .95)) for _ in range(60)], "fino", mult=False)
-    cortinas = []
-    for i, col in enumerate(["#3cf2a2", "#35d6d8", "#7be8c8", "#8a7cf0"]):
-        pts = [(x, 200 + 55 * i + math.sin(x / 200 + i * 1.7) * 80 + r.uniform(-20, 20)) for x in range(300, 1700, 150)]
-        g = e.grad([(0, col), (1, "#06122e")], 0, 1)
-        cortinas.append(f'<path d="{suave(pts)} L1700 {hz} L300 {hz} Z" fill="{g}" fill-opacity=".5"/>')
+    hz = 690
+    fx, fy = 1030, 930                      # la fogata
+    e.g([e.full(e.grad([(0, "#050c26"), (.5, "#0c2f4c"), (1, "#145a66")]))])
+    e.g([e.circ(r.uniform(380, 1540), r.uniform(-DY, 560), r.uniform(1.4, 3.6), "#f4fffb", r.uniform(.5, .98)) for _ in range(130)], "fino", mult=False)
+    # aurora: cortinas anchas + rayos verticales
+    cortinas, rayos = [], []
+    cols = ["#3cf2a2", "#35d6d8", "#7be8c8", "#9a86ff", "#3cf2a2"]
+    for i, col in enumerate(cols):
+        pts = [(x, 150 + 60 * i + math.sin(x / 190 + i * 1.3) * 95 + r.uniform(-18, 18)) for x in range(300, 1700, 140)]
+        g = e.grad([(0, col), (.6, col), (1, "#06122e")], 0, 1)
+        cortinas.append(f'<path d="{suave(pts)} L1700 {hz} L300 {hz} Z" fill="{g}" fill-opacity=".62"/>')
+        for _ in range(16):
+            x = r.uniform(380, 1540)
+            y0 = 150 + 60 * i + math.sin(x / 190 + i * 1.3) * 95
+            rayos.append(e.linea(f"M{n(x)} {n(y0)} L{n(x + r.uniform(-20, 20))} {n(y0 + r.uniform(160, 330))}", col, r.uniform(7, 16), r.uniform(.15, .3)))
     e.g(cortinas, "brillo", mult=False)
-    e.g([e.p(e.cresta(hz - 80, 50, 170, 300, 1700, hz + 4), "#274f68", .85)], mult=False)
-    e.g([e.p(e.cresta(hz - 36, 30, 150, 300, 1700, hz + 4), "#1b3a52", .9)], mult=False)
-    e.g([e.p(f"M300 {hz} L1700 {hz} L1700 {H + 100} L300 {H + 100} Z", e.grad([(0, "#2a7a82"), (.5, "#134a5e"), (1, "#071b36")]), 1, False)], mult=False)
-    e.g([e.p(e.blob(r.uniform(700, 1200), hz + 40 + i * 30, r.uniform(160, 320), 8 + i, 8, .3), r.choice(["#3cf2a2", "#35d6d8"]), .22, False) for i in range(9)], "fino", mult=False)
-    pinos = [pino(e, r.uniform(560, 1360), hz + r.uniform(8, 36), r.uniform(80, 220), "#07201f", .9) for _ in range(22)]
+    e.g(rayos, "bokeh", mult=False)
+    # montañas con nieve y reflejo en el lago
+    e.g([e.p(e.cresta(hz - 100, 70, 170, 300, 1700, hz + 4), "#2a5878", .92)], mult=False)
+    e.g([e.p(e.cresta(hz - 50, 40, 150, 300, 1700, hz + 4), "#1b3d56", .95)], mult=False)
+    e.g([e.p(e.blob(r.uniform(420, 1500), hz - 105 + r.uniform(-30, 30), r.uniform(50, 100), 12, 7, .3), "#dff6f4", .55, False) for _ in range(7)], "fino", mult=False)
+    e.g([e.p(f"M300 {hz} L1700 {hz} L1700 {H + 100} L300 {H + 100} Z", e.grad([(0, "#2a8a8a"), (.45, "#12485e"), (1, "#06182f")]), 1, False)], mult=False)
+    e.g([e.p(e.blob(r.uniform(520, 1400), hz + 30 + i * 22, r.uniform(160, 340), 7 + i * .6, 8, .3), cols[i % 4], .3, False) for i in range(10)], "fino", mult=False)
+    # orilla con nieve y pinos
+    e.g([e.p(e.cresta(850, 24, 170, 300, 1700, H + 100), "#07181c", .97)], mult=False)
+    e.g([e.p(e.blob(r.uniform(420, 1500), r.uniform(880, 1020), r.uniform(70, 170), r.uniform(10, 24), 8, .3), "#bfd8e0", .4, False) for _ in range(9)], mult=False)
+    pinos = [pino(e, r.uniform(430, 1500), hz + r.uniform(0, 30), r.uniform(70, 190), "#07201f", .9) for _ in range(22)]
+    pinos += [pino(e, x, 880 + r.uniform(0, 30), a, "#041411", .95) for x, a in ((470, 420), (590, 300), (1450, 400), (1330, 280))]
     e.g(pinos, "fino", mult=False)
-    # tela de la tienda: todo lo que queda fuera del arco de la entrada
-    arco = suave([(430, H + 160), (540, 700), (690, 380), (960, 190), (1230, 380), (1380, 700), (1490, H + 160)], True)
+    # fogata en la orilla
+    halo(e, fx, fy - 60, 330, "#ffb040", .85)
+    e.g([e.p(e.blob(fx + math.cos(a) * 112, fy + 6 + math.sin(a) * 34, r.uniform(15, 24), 12, 7, .3), r.choice(["#6a7077", "#8a9096", "#555b61"]), .95, False)
+         for a in [i * math.pi / 5 + r.uniform(-.1, .1) for i in range(10)]], "fino", mult=False)
+    e.g([e.linea(f"M{fx - 80} {fy + 14} L{fx + 70} {fy - 14}", "#3a2418", 26, .95), e.linea(f"M{fx + 80} {fy + 14} L{fx - 70} {fy - 14}", "#2a180e", 24, .95)], "fino", mult=False)
+    e.g([e.p(llama(fx, fy, 1), "#e8531c", .92, False), e.p(llama(fx + 6, fy, .72), "#ff9a2a", .94, False), e.p(llama(fx + 2, fy, .42), "#ffe27a", .96, False)], "fino", mult=False)
+    e.g([e.circ(fx + r.uniform(-80, 110), fy - r.uniform(120, 360), r.uniform(2, 5), r.choice(["#ffd27a", "#ff9a2a"]), r.uniform(.5, 1)) for _ in range(26)], "fino", mult=False)
+    # tela de la tienda: todo lo que queda fuera de la entrada
+    arco = suave([(290, H + 160), (370, 780), (500, 450), (740, 250), (960, 190), (1180, 250), (1420, 450), (1550, 780), (1630, H + 160)], True)
     e.b.append(f'<path d="M-400 {-DY - 400} H{W + 400} V{H + 400} H-400 Z {arco}" fill="#0c1326" fill-opacity=".97" fill-rule="evenodd"/>')
-    e.g([e.p(e.blob(r.choice([250, 1700]), r.uniform(0, H), 150, 520, 8, .2), "#1a2442", .55, False) for _ in range(5)], "fino", mult=False)
-    e.g([e.linea(arco, "#ffb55a", 7, .35)], "fino", mult=False)
-    # farol dentro de la tienda
-    halo(e, 260, 900, 420, "#ffb040", .7)
-    e.g([e.p(e.blob(260, 920, 34, 52, 8, .1), "#ffd27a", .95, False), e.linea("M260 880 L260 860", "#3a2a1a", 5, .9)], "fino", mult=False)
-    e.g(e.salpicar(14, "#ffd27a", 120, 700, 420, 1050, 4, .7), "fino", mult=False)
+    # costuras y pliegues
+    cost = []
+    for x in range(-200, 2200, 190):
+        cost.append(e.linea(f"M{x} {-DY - 60} L{n(960 + (x - 960) * .72)} 170", "#1b274a", 5, .6))
+    e.g(cost, "fino", mult=False)
+    e.g([e.p(e.blob(r.choice([180, 1760]), r.uniform(150, 800), 150, 420, 8, .2), "#1a2442", .5, False) for _ in range(6)], "fino", mult=False)
+    puntadas = f'<path d="{arco}" fill="none" stroke="#ffb55a" stroke-opacity=".45" stroke-width="3" stroke-dasharray="14 12"/>'
+    e.g([e.linea(arco, "#ffb55a", 9, .3), puntadas], "fino", mult=False)
+    # la luz de la fogata baña la tela de abajo
+    halo(e, fx, fy, 620, "#ff9a3a", .5)
+    # farol colgado
+    lx, ly = 520, 400
+    halo(e, lx, ly + 26, 330, "#ffb040", .75)
+    e.g([e.linea(f"M{lx} {-DY - 60} L{lx} {ly - 22}", "#2a2018", 4, .9), e.p(e.blob(lx, ly + 22, 26, 38, 8, .1), "#ffd27a", .96, False),
+         e.p(f"M{lx - 20} {ly - 12} L{lx + 20} {ly - 12} L{lx + 14} {ly - 26} L{lx - 14} {ly - 26} Z", "#3a2a1a", .95, False)], "fino", mult=False)
+    # saco de dormir, botas y taza con vapor en primer plano
+    e.g([e.p(e.blob(150, 1010, 440, 160, 11, .13, -.1), "#b4482a", .97, False)], "fino", mult=False)
+    e.g([e.linea(f"M{x} 880 Q{x + 20} 1010 {x - 10} 1120", "#7a2a14", 4, .55) for x in (-40, 80, 200, 320, 440)], "fino", mult=False)
+    e.g([e.p(e.blob(560, 1040, 54, 30, 8, .2, -.3), "#3a2a1a", .96, False), e.p(e.blob(640, 1062, 50, 28, 8, .2, -.2), "#2a1c10", .96, False)], "fino", mult=False)
+    mx, my = 1640, 1010
+    e.g([e.p(f"M{mx - 34} {my - 40} L{mx + 34} {my - 40} L{mx + 28} {my + 36} L{mx - 28} {my + 36} Z", "#d9d2c4", .96, False), e.linea(f"M{mx + 34} {my - 20} q34 8 0 40", "#d9d2c4", 8, .95),
+         e.linea(f"M{mx - 14} {my - 64} q-12 -30 8 -56 q14 -22 -6 -48", "#ffffff", 5, .4), e.linea(f"M{mx + 8} {my - 64} q14 -30 -6 -56", "#ffffff", 4, .3)], "fino", mult=False)
     return e
 
 
