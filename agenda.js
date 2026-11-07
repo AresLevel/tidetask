@@ -673,14 +673,24 @@
   }
   /** Coloca un menú flotante junto al dedo: hacia abajo si cabe; si no, hacia arriba; nunca bajo la barra inferior ni los bordes. */
   function situarMenu(m, x, y) {
-    const r = m.getBoundingClientRect(), margen = 10, tabs = document.querySelector('.tabs');
-    const sombra = tabs && tabs.offsetParent !== null ? tabs.offsetHeight : 0;
-    const fondo = innerHeight - sombra - margen;
-    let top = y + 6 + r.height <= fondo ? y + 6 : y - 6 - r.height;   // abajo si cabe, si no arriba del dedo
-    top = Math.max(margen, Math.min(top, fondo - r.height));
+    const margen = 10, tabs = document.querySelector('.tabs');
+    // la barra inferior es position:fixed (offsetParent siempre nulo): se mide con su rectángulo real
+    const barra = tabs && getComputedStyle(tabs).display !== 'none' ? Math.max(0, innerHeight - tabs.getBoundingClientRect().top) : 0;
+    const vv = window.visualViewport, alto = vv ? vv.height : innerHeight;
+    const fondo = Math.min(alto, innerHeight - barra) - margen, techo = margen;
+    m.style.animation = 'none'; m.style.maxHeight = ''; m.style.overflowY = '';
+    let r = m.getBoundingClientRect();
+    const abajo = fondo - (y + 6), arriba = (y - 6) - techo;           // espacio libre debajo y encima del dedo
+    const haciaAbajo = r.height <= abajo || (r.height > arriba && abajo >= arriba);
+    const libre = haciaAbajo ? abajo : arriba;
+    if (r.height > libre) { m.style.maxHeight = Math.max(120, libre) + 'px'; m.style.overflowY = 'auto'; r = m.getBoundingClientRect(); }
+    let top = haciaAbajo ? y + 6 : y - 6 - r.height;
+    top = Math.max(techo, Math.min(top, fondo - r.height));
     m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
     m.style.top = top + 'px';
-    m.dataset.lado = top < y ? 'arriba' : 'abajo';
+    m.dataset.lado = haciaAbajo ? 'abajo' : 'arriba';
+    m.style.transformOrigin = haciaAbajo ? 'top left' : 'bottom left';
+    m.style.animation = '';
   }
   const cerrarMenuCtx = () => { const m = document.getElementById('agMenuCtx'); if (m) m.remove(); };
   function menuLista(l, x, y) {
