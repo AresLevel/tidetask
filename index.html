@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pomodoro</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=5">
+<link rel="stylesheet" href="agenda.css?v=6">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -108,7 +108,7 @@
   .pildora .punto { width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--texto-suave); }
   .pildora.viva .punto { background: var(--texto); animation: latido 1.8s ease-in-out infinite; }
   @keyframes latido { 50% { transform: scale(1.5); opacity: .45; } }
-  @media (prefers-reduced-motion: reduce) { .vista, .pildora.viva .punto { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { body:not(.anim-siempre) .vista, body:not(.anim-siempre) .pildora.viva .punto, body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: none !important; } body:not(.anim-siempre) * { transition-duration: .01ms !important; } }
 
   /* ---- Barra superior derecha ---- */
   .barra { position: fixed; top: 1.4rem; right: 1.4rem; display: flex; gap: .6rem; transition: opacity .4s; }
@@ -187,16 +187,6 @@
   .vacio { font-size: .82rem; color: var(--texto-suave); padding: .6rem .3rem; }
 
   /* estadísticas */
-  .grande { display: flex; gap: 1.6rem; }
-  .grande div { display: flex; flex-direction: column; gap: .15rem; }
-  .grande b { font-size: 2.1rem; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
-  .grande span { font-size: .72rem; color: var(--texto-suave); }
-  .barras { display: flex; align-items: flex-end; gap: .55rem; height: 5.5rem; padding-top: .3rem; }
-  .barras .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: .3rem; }
-  .barras .b { width: 100%; max-width: 1.6rem; min-height: 3px; border-radius: .4rem; background: var(--sutil); }
-  .barras .col.hoy .b { background: var(--acento); }
-  .barras .n { font-size: .65rem; color: var(--texto-suave); }
-  .barras .l { font-size: .68rem; color: var(--texto-suave); }
 
   /* ajustes */
   .grupo { display: flex; flex-direction: column; gap: .7rem; padding-top: .8rem; border-top: 1px solid var(--borde); }
@@ -291,7 +281,7 @@
 <nav class="selector" id="selector" aria-label="Fondos"></nav>
 
 <div class="barra" id="barra">
-  <button class="btn-sec solo-hoy" data-panel="stats" data-tip="Estadísticas" aria-label="Estadísticas">
+  <button class="btn-sec solo-hoy" id="verHistorial" data-tip="Historial y estadísticas" aria-label="Historial y estadísticas">
     <svg viewBox="0 0 24 24"><path d="M5 20v-7M11 20V5M17 20v-10"/><path d="M3 20h18"/></svg>
   </button>
   <button class="btn-sec solo-enfoque" data-panel="musica" data-tip="Música" aria-label="Música">
@@ -304,17 +294,6 @@
     <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
   </button>
 </div>
-
-<!-- Estadísticas -->
-<aside class="panel solo-hoy" id="stats">
-  <h2>Tu progreso</h2>
-  <div class="grande">
-    <div><b id="sHoy">0</b><span>pomodoros hoy</span></div>
-    <div><b id="sMin">0</b><span>min de enfoque hoy</span></div>
-    <div><b id="sSem">0</b><span>últimos 7 días</span></div>
-  </div>
-  <div class="barras" id="sBarras"></div>
-</aside>
 
 <!-- Música -->
 <aside class="panel solo-enfoque" id="musica">
@@ -348,6 +327,11 @@
     <div class="ajuste"><span>Notificación del navegador<small>Te avisa aunque estés en otra pestaña</small></span><button class="sw" data-acc="sw" data-k="notif" role="switch"></button></div>
   </div>
   <div class="grupo">
+    <h2>Tareas y apariencia</h2>
+    <div class="ajuste"><span>Recordatorios de tareas<small>Avisan solo mientras esta página esté abierta</small></span><button class="sw" data-acc="sw" data-k="recordar" role="switch"></button></div>
+    <div class="ajuste"><span>Animaciones</span><div class="chips"><button class="chip" data-acc="anim" data-v="siempre">Siempre</button><button class="chip" data-acc="anim" data-v="sistema">Según mi sistema</button></div></div>
+  </div>
+  <div class="grupo">
     <h2>Sonido ambiente</h2>
     <div class="chips" id="chipsAmb">
       <button class="chip" data-acc="amb" data-v="ninguno">Ninguno</button>
@@ -372,8 +356,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=5"></script>
-<script src="agenda.js?v=5"></script>
+<script src="nube.js?v=6"></script>
+<script src="agenda.js?v=6"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -399,7 +383,7 @@
   const COLOR_ICONO = { enfoque: '#e8553d', corto: '#4fb286', largo: '#4f8fe0' };
   const LIM = { enfoque: [1, 180], corto: [1, 60], largo: [1, 90], ciclos: [2, 10] };
   const DEF = { enfoque: 25, corto: 5, largo: 15, ciclos: 4, autoDescanso: false, autoEnfoque: false, alarma: true,
-                notif: false, fondoDescansoOn: false, fondoDescanso: 'azul', ambiente: 'auto', volumen: .5 };
+                notif: false, recordar: false, anim: 'siempre', fondoDescansoOn: false, fondoDescanso: 'azul', ambiente: 'auto', volumen: .5 };
   let cfg = { ...DEF, ...leer('pomo.cfg', {}) };
   const guardarCfg = () => poner('pomo.cfg', cfg);
   const dur = m => cfg[m] * 60000;
@@ -564,25 +548,7 @@
     st[k] = st[k] || { n: 0, min: 0 };
     st[k].n++; st[k].min += cfg.enfoque;
     poner('pomo.stats', st);
-    Agenda.sumarPomodoro();
-  }
-  function pintarStats() {
-    const st = leer('pomo.stats', {}), dias = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      dias.push({ n: (st[fecha(d)] || {}).n || 0, l: 'DLMXJVS'[d.getDay()], hoy: i === 0 });
-    }
-    const h = st[fecha(new Date())] || { n: 0, min: 0 };
-    $('sHoy').textContent = h.n; $('sMin').textContent = h.min;
-    $('sSem').textContent = dias.reduce((s, d) => s + d.n, 0);
-    const max = Math.max(1, ...dias.map(d => d.n)), cont = $('sBarras'); cont.textContent = '';
-    dias.forEach(d => {
-      const c = document.createElement('div'); c.className = 'col' + (d.hoy ? ' hoy' : '');
-      const n = document.createElement('span'); n.className = 'n'; n.textContent = d.n || '';
-      const b = document.createElement('div'); b.className = 'b'; b.style.height = (d.n / max * 70) + '%';
-      const l = document.createElement('span'); l.className = 'l'; l.textContent = d.l;
-      c.append(n, b, l); cont.appendChild(c);
-    });
+    Agenda.registrarFoco(cfg.enfoque);
   }
   const pomosHoy = () => (leer('pomo.stats', {})[fecha(new Date())] || {}).n || 0;
 
@@ -710,12 +676,21 @@
   function abrirPanel(id) {
     const p = $(id), abrir = !p.classList.contains('abierto');
     document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto'));
-    if (abrir) { p.classList.add('abierto'); if (id === 'stats') pintarStats(); }
+    if (abrir) { p.classList.add('abierto'); }
     document.querySelectorAll('[data-panel]').forEach(b => b.classList.toggle('on', abrir && b.dataset.panel === id));
   }
   function cerrarPaneles() { document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto')); document.querySelectorAll('[data-panel]').forEach(b => b.classList.remove('on')); }
   document.querySelectorAll('[data-panel]').forEach(b => b.onclick = () => abrirPanel(b.dataset.panel));
+  $('verHistorial').onclick = () => { cerrarPaneles(); Agenda.abrirHistorial(); };
   document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra')) cerrarPaneles(); });
+
+  // ============ Recordatorios de tareas (opt-in) ============
+  window.recordatoriosActivos = () => !!cfg.recordar;
+  function pedirPermisoRecordar(alTerminar) {
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().then(() => { pintarAjustes(); if (alTerminar) alTerminar(); });
+    if (alTerminar && !('Notification' in window && Notification.permission === 'default')) alTerminar();
+  }
+  window.activarRecordatorios = alTerminar => { cfg.recordar = true; guardarCfg(); pintarAjustes(); pedirPermisoRecordar(alTerminar); aviso('Recordatorios activados. Avisan mientras esta página esté abierta.'); };
 
   // ============ Ajustes ============
   function pintarAjustes() {
@@ -723,6 +698,8 @@
     document.querySelector('[data-o="ciclos"]').textContent = cfg.ciclos;
     document.querySelectorAll('.sw').forEach(b => { const on = !!cfg[b.dataset.k]; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
     document.querySelectorAll('[data-acc="amb"]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.ambiente));
+    document.querySelectorAll('[data-acc="anim"]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.anim));
+    document.body.classList.toggle('anim-siempre', cfg.anim !== 'sistema');
     document.querySelectorAll('#descansoSel button').forEach(b => b.classList.toggle('on', b.dataset.fd === cfg.fondoDescanso));
     $('volumen').value = Math.round(cfg.volumen * 100);
   }
@@ -739,7 +716,10 @@
         if (!('Notification' in window)) { cfg.notif = false; aviso('Este navegador no admite notificaciones'); }
         else Notification.requestPermission().then(p => { if (p !== 'granted') { cfg.notif = false; guardarCfg(); pintarAjustes(); aviso('No se concedió el permiso de notificaciones'); } });
       }
+      if (k === 'recordar' && cfg.recordar) pedirPermisoRecordar();
       if (k === 'fondoDescansoOn') { const f = fondoParaModo(); if (f !== fondoActual.id) ponerFondo(f, false); }
+    } else if (b.dataset.acc === 'anim') {
+      cfg.anim = b.dataset.v;
     } else if (b.dataset.acc === 'amb') {
       cfg.ambiente = b.dataset.v;
       if (corriendo && modo === 'enfoque') ambiente(true);
