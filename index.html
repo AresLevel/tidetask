@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>Pomodoro</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=14">
+<link rel="stylesheet" href="agenda.css?v=15">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -416,8 +416,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=14"></script>
-<script src="agenda.js?v=14"></script>
+<script src="nube.js?v=15"></script>
+<script src="agenda.js?v=15"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -832,7 +832,7 @@
     if (corriendo && vista === 'enfoque') idle = setTimeout(() => { if (!document.body.classList.contains('agenda-abierta')) document.body.classList.add('zen'); }, 4000);
   });
 
-  if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
   // ============ Arranque: recupera la sesión si se cerró o recargó la página ============
   ponerFondo(fondoElegido);

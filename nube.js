@@ -9,6 +9,9 @@
   const K = { tok: 'nube.tok', on: 'nube.on', ids: 'nube.ids', ult: 'nube.ult', email: 'nube.email' };
   const API = 'https://www.googleapis.com/drive/v3/files', SUBIDA = 'https://www.googleapis.com/upload/drive/v3/files';
 
+  // En la app de Android el token lo da el plugin nativo (Google bloquea el inicio de sesión web dentro de un WebView)
+  const nativo = () => { const c = g.Capacitor; return c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.Pomodoro ? c.Plugins.Pomodoro : null; };
+
   let cliente = null, pendiente = null, tok = null, exp = 0, enCurso = null;
   try {
     const s = JSON.parse(localStorage.getItem(K.tok) || 'null');
@@ -35,7 +38,7 @@
     });
   }
   async function asegurarCliente() {
-    if (cliente) return;
+    if (cliente || nativo()) return;
     await cargarGsi();
     cliente = g.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID, scope: SCOPES,
@@ -44,6 +47,15 @@
     });
   }
   function pedir(opciones, ms) {
+    const n = nativo();
+    if (n) {
+      return n.requestGoogleToken({ interactive: !!opciones.interactivo, hint: opciones.login_hint || '' }).then(r => {
+        if (!r || !r.access_token) return false;
+        tok = r.access_token; exp = Date.now() + (Number(r.expires_in) || 3500) * 1000;
+        try { localStorage.setItem(K.tok, JSON.stringify({ t: tok, exp })); } catch { /* sin espacio */ }
+        return true;
+      }).catch(() => false);
+    }
     return new Promise(res => {
       const timer = ms ? setTimeout(() => { pendiente = null; res(false); }, ms) : null;
       pendiente = r => {
@@ -136,7 +148,7 @@
   Nube.conectar = async function () {
     try {
       await asegurarCliente();
-      const ok = await pedir({ prompt: Nube.conectada() ? '' : 'select_account', login_hint: Nube.email || undefined });
+      const ok = await pedir({ prompt: Nube.conectada() ? '' : 'select_account', login_hint: Nube.email || undefined, interactivo: true });
       if (!ok) { if (!Nube.conectada()) cambiar('apagada'); return false; }
       localStorage.setItem(K.on, '1');
       try {
