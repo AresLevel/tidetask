@@ -1,0 +1,12 @@
+# Firebase (se deja de usar)
+.firebase/
+.firebaserc
+firebase.json
+
+# Material de trabajo que no se publica
+img/fotos/
+img/planos/
+__pycache__/
+*.log
+.env
+.env.*

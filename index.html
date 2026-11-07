@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pomodoro</title>
+<link rel="icon" id="favicon" href="data:,">
+<link rel="stylesheet" href="agenda.css">
+<style>
+  :root {
+    /* Los define cada escena desde JS */
+    --acento: #cfe6ff;
+    --acento-texto: #101410;
+    --vidrio: rgba(255,255,255,.12);
+    --borde: rgba(255,255,255,.2);
+    --texto: #f8f9fb;
+    --texto-suave: color-mix(in srgb, var(--texto) 72%, transparent);
+    --velo: radial-gradient(ellipse at center, rgba(0,0,0,.18) 0%, rgba(0,0,0,.42) 100%);
+    --campo: rgba(255,255,255,.14);
+    --sutil: color-mix(in srgb, var(--texto) 22%, transparent);
+  }
+  body[data-tono="oscuro"] {
+    --vidrio: rgba(255,255,255,.42);
+    --borde: rgba(0,0,0,.14);
+    --velo: radial-gradient(ellipse at center, rgba(255,255,255,.2) 0%, rgba(255,255,255,0) 100%);
+    --campo: rgba(255,255,255,.5);
+  }
+  body[data-tono="claro"] .reloj { text-shadow: 0 2px 40px rgba(0,0,0,.35); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: var(--texto); background: #111; }
+  button { font: inherit; color: inherit; }
+
+  /* ---- Fondos: dos capas para fundido cruzado ---- */
+  .fondo {
+    position: fixed; inset: 0; background-size: cover; background-position: center;
+    opacity: 0; transition: opacity 1.6s ease; transform: scale(1.04);
+  }
+  .fondo.activo { opacity: 1; }
+  .velo { position: fixed; inset: 0; pointer-events: none; background: var(--velo); }
+
+  /* ---- Escena ---- */
+  main {
+    position: relative; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
+  }
+  .modos {
+    display: flex; gap: .25rem; padding: .3rem;
+    background: var(--vidrio); border: 1px solid var(--borde); border-radius: 999px; backdrop-filter: blur(14px);
+  }
+  .modos button {
+    font-size: .85rem; letter-spacing: .02em; color: var(--texto-suave); background: none; border: 0;
+    padding: .5rem 1.1rem; border-radius: 999px; cursor: pointer; transition: color .25s, background .25s;
+  }
+  .modos button:hover { color: var(--texto); }
+  .modos button.on { color: var(--acento-texto); background: var(--acento); }
+
+  .reloj {
+    font-size: clamp(5.5rem, 22vw, 13rem); font-weight: 200; line-height: 1;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em; user-select: none;
+  }
+  .controles { display: flex; align-items: center; gap: 1rem; }
+  .btn-main {
+    font-size: 1rem; font-weight: 500; letter-spacing: .04em; color: var(--acento-texto); background: var(--acento);
+    border: 0; border-radius: 999px; padding: .9rem 2.6rem; cursor: pointer; transition: transform .15s, filter .2s;
+  }
+  .btn-main:hover { filter: brightness(1.06); }
+  .btn-main:active { transform: scale(.97); }
+  .btn-sec {
+    position: relative; width: 2.9rem; height: 2.9rem; display: grid; place-items: center; flex: none;
+    color: var(--texto); background: var(--vidrio); border: 1px solid var(--borde);
+    border-radius: 50%; cursor: pointer; backdrop-filter: blur(14px); transition: background .2s, color .2s;
+  }
+  .btn-sec:hover { background: color-mix(in srgb, var(--vidrio) 60%, var(--acento)); }
+  .btn-sec.on { background: var(--acento); color: var(--acento-texto); }
+  .btn-sec svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .info { display: flex; flex-direction: column; align-items: center; gap: .5rem; min-height: 3rem; }
+  .ciclo { font-size: .8rem; color: var(--texto-suave); letter-spacing: .08em; }
+  .tarea-activa {
+    max-width: min(80vw, 28rem); font-size: .95rem; color: var(--texto); background: none; border: 0; cursor: pointer;
+    padding: .3rem .9rem; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border-bottom: 1px dashed var(--sutil);
+  }
+  .tarea-activa.vacia { color: var(--texto-suave); }
+  .tarea-activa:hover { background: var(--vidrio); }
+  .tarea-input {
+    width: min(86vw, 22rem); font: inherit; font-size: .95rem; text-align: center; color: var(--texto);
+    padding: .55rem 1.1rem; border-radius: 999px; outline: none;
+    background: var(--vidrio); border: 1px solid var(--borde); backdrop-filter: blur(14px);
+    transition: border-color .2s;
+  }
+  .tarea-input::placeholder { color: var(--texto-suave); }
+  .tarea-input:focus { border-color: var(--acento-texto); }
+  .info [hidden] { display: none; }
+
+  /* ---- Barra superior derecha ---- */
+  .barra { position: fixed; top: 1.4rem; right: 1.4rem; display: flex; gap: .6rem; transition: opacity .4s; }
+
+  /* ---- Tooltips propios (en lugar de los nativos) ---- */
+  [data-tip]::after {
+    content: attr(data-tip); position: absolute; top: calc(100% + 10px); left: 50%; transform: translate(-50%, -4px);
+    padding: .35rem .65rem; border-radius: .5rem; font-size: .72rem; line-height: 1.2; white-space: nowrap;
+    color: var(--acento-texto); background: var(--acento); box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 30;
+  }
+  [data-tip]:hover::after { opacity: 1; transform: translate(-50%, 0); transition-delay: .35s; }
+  .barra [data-tip]:last-child::after { left: auto; right: 0; transform: translate(0, -4px); }
+  .barra [data-tip]:last-child:hover::after { transform: none; }
+  .selector [data-tip]::after { top: auto; bottom: calc(100% + 12px); }
+
+  /* ---- Selector de fondos ---- */
+  .selector {
+    position: fixed; left: 50%; bottom: 1.6rem; transform: translateX(-50%);
+    display: flex; gap: .55rem; padding: .5rem;
+    background: var(--vidrio); border: 1px solid var(--borde); border-radius: 999px; backdrop-filter: blur(14px);
+    transition: opacity .4s;
+  }
+  .selector button, .mini button {
+    position: relative; width: 2.3rem; height: 2.3rem; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; background-size: cover; background-position: center; transition: transform .2s, border-color .2s;
+  }
+  .selector button:hover, .mini button:hover { transform: scale(1.12); }
+  .selector button.on, .mini button.on { border-color: var(--acento-texto); box-shadow: 0 0 0 2px var(--acento); }
+
+  /* ---- Paneles ---- */
+  .panel {
+    position: fixed; top: 4.9rem; right: 1.4rem; width: min(370px, calc(100vw - 2.8rem)); max-height: calc(100vh - 11rem);
+    padding: 1.1rem; border-radius: 1.2rem; display: flex; flex-direction: column; gap: .9rem;
+    background: var(--vidrio); border: 1px solid var(--borde); backdrop-filter: blur(20px);
+    opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity .25s, transform .25s;
+  }
+  .panel.abierto { opacity: 1; transform: none; pointer-events: auto; }
+  .panel h2 { font-size: .78rem; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--texto-suave); }
+  .nota { font-size: .72rem; line-height: 1.45; color: var(--texto-suave); }
+  .fila { display: flex; gap: .5rem; }
+  .panel input[type=text] {
+    flex: 1; min-width: 0; font: inherit; font-size: .88rem; color: var(--texto);
+    background: var(--campo); border: 1px solid var(--borde); border-radius: .7rem; padding: .55rem .75rem; outline: none;
+  }
+  .panel input[type=text]::placeholder { color: var(--texto-suave); }
+  .panel input[type=text]:focus { border-color: var(--acento-texto); }
+  .btn-acento {
+    font-size: .82rem; font-weight: 500; color: var(--acento-texto); background: var(--acento);
+    border: 0; border-radius: .7rem; padding: 0 .95rem; cursor: pointer;
+  }
+  .btn-acento:hover { filter: brightness(1.07); }
+
+  /* scrollbars propios */
+  .lista { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--sutil) transparent; }
+  .lista::-webkit-scrollbar, .panel::-webkit-scrollbar { width: 6px; }
+  .lista::-webkit-scrollbar-thumb { background: var(--sutil); border-radius: 6px; }
+  .lista::-webkit-scrollbar-track { background: transparent; }
+  .panel#ajustes { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--sutil) transparent; }
+  .panel#ajustes::-webkit-scrollbar-thumb { background: var(--sutil); border-radius: 6px; }
+
+  /* tareas */
+  .tarea { display: flex; align-items: center; gap: .6rem; padding: .45rem .3rem; border-radius: .6rem; }
+  .tarea.activa { background: var(--campo); }
+  .tarea .caja {
+    width: 1.15rem; height: 1.15rem; flex: none; border-radius: .35rem; cursor: pointer;
+    border: 1.5px solid var(--texto-suave); background: none; display: grid; place-items: center; padding: 0;
+  }
+  .tarea.hecha .caja { background: var(--acento); border-color: var(--acento); }
+  .tarea.hecha .caja::after { content: ''; width: .3rem; height: .55rem; border: solid var(--acento-texto); border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px,-1px); }
+  .tarea .txt { flex: 1; min-width: 0; text-align: left; background: none; border: 0; cursor: pointer; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
+  .tarea.hecha .txt { text-decoration: line-through; opacity: .55; }
+  .tarea .cuenta { font-size: .72rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+  .tarea .borrar { background: none; border: 0; cursor: pointer; opacity: .5; font-size: 1.05rem; line-height: 1; padding: 0 .2rem; }
+  .tarea .borrar:hover { opacity: 1; }
+  .vacio { font-size: .82rem; color: var(--texto-suave); padding: .6rem .3rem; }
+
+  /* estadísticas */
+  .grande { display: flex; gap: 1.6rem; }
+  .grande div { display: flex; flex-direction: column; gap: .15rem; }
+  .grande b { font-size: 2.1rem; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+  .grande span { font-size: .72rem; color: var(--texto-suave); }
+  .barras { display: flex; align-items: flex-end; gap: .55rem; height: 5.5rem; padding-top: .3rem; }
+  .barras .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: .3rem; }
+  .barras .b { width: 100%; max-width: 1.6rem; min-height: 3px; border-radius: .4rem; background: var(--sutil); }
+  .barras .col.hoy .b { background: var(--acento); }
+  .barras .n { font-size: .65rem; color: var(--texto-suave); }
+  .barras .l { font-size: .68rem; color: var(--texto-suave); }
+
+  /* ajustes */
+  .grupo { display: flex; flex-direction: column; gap: .7rem; padding-top: .8rem; border-top: 1px solid var(--borde); }
+  .grupo:first-of-type { border-top: 0; padding-top: 0; }
+  .ajuste { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: .88rem; }
+  .ajuste small { display: block; font-size: .7rem; color: var(--texto-suave); margin-top: .1rem; }
+  .paso { display: flex; align-items: center; gap: .4rem; }
+  .paso button {
+    width: 1.8rem; height: 1.8rem; border-radius: 50%; cursor: pointer; line-height: 1; font-size: 1rem;
+    background: var(--campo); border: 1px solid var(--borde);
+  }
+  .paso button:hover { background: var(--acento); color: var(--acento-texto); }
+  .paso output { min-width: 3.6rem; text-align: center; font-variant-numeric: tabular-nums; font-size: .88rem; }
+  .sw { position: relative; width: 2.6rem; height: 1.5rem; flex: none; border-radius: 999px; border: 0; cursor: pointer; background: var(--sutil); transition: background .2s; }
+  .sw::after { content: ''; position: absolute; top: .18rem; left: .18rem; width: 1.14rem; height: 1.14rem; border-radius: 50%; background: #fff; transition: transform .2s, background .2s; }
+  .sw.on { background: var(--acento); }
+  .sw.on::after { transform: translateX(1.1rem); background: var(--acento-texto); }
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .chip { font-size: .78rem; padding: .35rem .75rem; border-radius: 999px; cursor: pointer; background: var(--campo); border: 1px solid var(--borde); }
+  .chip:hover { border-color: var(--acento-texto); }
+  .chip.on { background: var(--acento); color: var(--acento-texto); border-color: transparent; }
+  .mini { display: flex; gap: .45rem; flex-wrap: wrap; }
+  .mini button { width: 1.9rem; height: 1.9rem; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px; background: var(--sutil); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--acento); border: 2px solid var(--acento-texto); }
+  input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--acento); border: 2px solid var(--acento-texto); }
+
+  #spEmbed iframe { border-radius: 12px; display: block; }
+  .bloque { display: flex; flex-direction: column; gap: .7rem; }
+  .bloque[hidden] { display: none; }
+
+  /* ---- Aviso ---- */
+  .toast {
+    position: fixed; left: 50%; bottom: 5.8rem; transform: translate(-50%, 10px); max-width: min(90vw, 26rem);
+    padding: .65rem 1.1rem; border-radius: 999px; font-size: .85rem; text-align: center;
+    color: var(--acento-texto); background: var(--acento); box-shadow: 0 6px 22px rgba(0,0,0,.25);
+    opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; z-index: 40;
+  }
+  .toast.ver { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---- Modo zen ---- */
+  body.zen .selector, body.zen .modos, body.zen .btn-sec, body.zen .info, body.zen .barra { opacity: 0; transition: opacity 1s; }
+  body.zen .panel { opacity: 0; pointer-events: none; }
+  body.zen { cursor: none; }
+</style>
+</head>
+<body>
+
+<div class="fondo" id="f1"></div>
+<div class="fondo" id="f2"></div>
+<div class="velo"></div>
+
+<main>
+  <div class="modos" id="modos">
+    <button data-modo="enfoque" class="on">Enfoque</button>
+    <button data-modo="corto">Descanso</button>
+    <button data-modo="largo">Descanso largo</button>
+  </div>
+
+  <div class="reloj" id="reloj">25:00</div>
+
+  <div class="controles">
+    <button class="btn-sec" id="reiniciar" data-tip="Reiniciar (R)" aria-label="Reiniciar">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+    </button>
+    <button class="btn-main" id="iniciar">Iniciar</button>
+    <button class="btn-sec" id="saltar" data-tip="Saltar (S)" aria-label="Saltar">
+      <svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7z"/><path d="M19 5v14"/></svg>
+    </button>
+  </div>
+
+  <div class="info">
+    <div class="ciclo" id="ciclo"></div>
+    <button class="tarea-activa" id="tareaActiva" hidden></button>
+    <input class="tarea-input" id="enfoqueInput" type="text" placeholder="¿En qué vas a enfocarte?" autocomplete="off" maxlength="120" aria-label="¿En qué vas a enfocarte?">
+  </div>
+</main>
+
+<nav class="selector" id="selector" aria-label="Fondos"></nav>
+
+<div class="barra" id="barra">
+  <button class="btn-sec" id="agendaBtn" data-tip="Agenda" aria-label="Agenda">
+    <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
+  </button>
+  <button class="btn-sec" data-panel="stats" data-tip="Estadísticas" aria-label="Estadísticas">
+    <svg viewBox="0 0 24 24"><path d="M5 20v-7M11 20V5M17 20v-10"/><path d="M3 20h18"/></svg>
+  </button>
+  <button class="btn-sec" data-panel="musica" data-tip="Música" aria-label="Música">
+    <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
+  </button>
+  <button class="btn-sec" data-panel="ajustes" data-tip="Ajustes" aria-label="Ajustes">
+    <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+  </button>
+  <button class="btn-sec" id="pantalla" data-tip="Pantalla completa (F)" aria-label="Pantalla completa">
+    <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+</div>
+
+<!-- Estadísticas -->
+<aside class="panel" id="stats">
+  <h2>Tu progreso</h2>
+  <div class="grande">
+    <div><b id="sHoy">0</b><span>pomodoros hoy</span></div>
+    <div><b id="sMin">0</b><span>min de enfoque hoy</span></div>
+    <div><b id="sSem">0</b><span>últimos 7 días</span></div>
+  </div>
+  <div class="barras" id="sBarras"></div>
+</aside>
+
+<!-- Música -->
+<aside class="panel" id="musica">
+  <h2>Música</h2>
+
+  <!-- Sin vincular: reproductor incrustado -->
+  <div class="bloque">
+    <div class="fila">
+      <input id="spInput" type="text" placeholder="Enlace de Spotify (playlist, álbum…)" autocomplete="off">
+      <button class="btn-acento" id="spCargar">Cargar</button>
+    </div>
+    <div id="spEmbed"></div>
+  </div>
+  <p class="nota" id="spNota">Suena al iniciar un Pomodoro y se pausa al pausar o en los descansos. Si no tienes la sesión de Spotify abierta en este navegador, solo se oirán fragmentos de 30 s.</p>
+</aside>
+
+<!-- Ajustes -->
+<aside class="panel" id="ajustes">
+  <div class="grupo">
+    <h2>Duraciones</h2>
+    <div class="ajuste"><span>Enfoque</span><div class="paso"><button data-acc="paso" data-k="enfoque" data-d="-1">−</button><output data-o="enfoque"></output><button data-acc="paso" data-k="enfoque" data-d="1">+</button></div></div>
+    <div class="ajuste"><span>Descanso</span><div class="paso"><button data-acc="paso" data-k="corto" data-d="-1">−</button><output data-o="corto"></output><button data-acc="paso" data-k="corto" data-d="1">+</button></div></div>
+    <div class="ajuste"><span>Descanso largo</span><div class="paso"><button data-acc="paso" data-k="largo" data-d="-1">−</button><output data-o="largo"></output><button data-acc="paso" data-k="largo" data-d="1">+</button></div></div>
+    <div class="ajuste"><span>Pomodoros antes del largo</span><div class="paso"><button data-acc="paso" data-k="ciclos" data-d="-1">−</button><output data-o="ciclos"></output><button data-acc="paso" data-k="ciclos" data-d="1">+</button></div></div>
+  </div>
+  <div class="grupo">
+    <h2>Transiciones</h2>
+    <div class="ajuste"><span>Empezar el descanso solo<small>Si no, espera a que lo inicies</small></span><button class="sw" data-acc="sw" data-k="autoDescanso" role="switch"></button></div>
+    <div class="ajuste"><span>Empezar el enfoque solo</span><button class="sw" data-acc="sw" data-k="autoEnfoque" role="switch"></button></div>
+    <div class="ajuste"><span>Alarma al terminar</span><button class="sw" data-acc="sw" data-k="alarma" role="switch"></button></div>
+    <div class="ajuste"><span>Notificación del navegador<small>Te avisa aunque estés en otra pestaña</small></span><button class="sw" data-acc="sw" data-k="notif" role="switch"></button></div>
+  </div>
+  <div class="grupo">
+    <h2>Sonido ambiente</h2>
+    <div class="chips" id="chipsAmb">
+      <button class="chip" data-acc="amb" data-v="ninguno">Ninguno</button>
+      <button class="chip" data-acc="amb" data-v="auto">Según la escena</button>
+      <button class="chip" data-acc="amb" data-v="lluvia">Lluvia</button>
+      <button class="chip" data-acc="amb" data-v="olas">Olas</button>
+      <button class="chip" data-acc="amb" data-v="viento">Viento</button>
+      <button class="chip" data-acc="amb" data-v="grillos">Grillos</button>
+    </div>
+    <input type="range" id="volumen" min="0" max="100" aria-label="Volumen">
+  </div>
+  <div class="grupo">
+    <h2>Escena en los descansos</h2>
+    <div class="ajuste"><span>Cambiar de escena al descansar</span><button class="sw" data-acc="sw" data-k="fondoDescansoOn" role="switch"></button></div>
+    <div class="mini" id="descansoSel"></div>
+  </div>
+  <p class="nota">Atajos: Espacio inicia/pausa · R reinicia · S salta · F pantalla completa · Esc cierra paneles.</p>
+</aside>
+
+<div class="agenda" id="agenda"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>window.NUBE_ACTIVA = false;   // la sincronización con Google Drive está en pausa hasta decidir la dirección definitiva</script>
+<script src="nube.js"></script>
+<script src="agenda.js"></script>
+<script>
+  // ============ Utilidades ============
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, '0');
+  const leer = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch { return def; } };
+  const poner = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const fecha = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  function aviso(txt) {
+    const t = $('toast'); t.textContent = txt; t.classList.add('ver');
+    clearTimeout(aviso.t); aviso.t = setTimeout(() => t.classList.remove('ver'), 3800);
+  }
+
+  // ============ Datos ============
+  // tono: 'claro' = texto blanco, 'oscuro' = texto oscuro. ambiente = sonido sugerido para la escena.
+  const FONDOS = [
+    { id: 'amarillo', nombre: 'Girasoles',        tono: 'oscuro', texto: '#3a2410', acento: '#3a2410', acentoTexto: '#fff3c4', ambiente: 'viento' },
+    { id: 'naranja',  nombre: 'Globos',           tono: 'oscuro', texto: '#4a1a10', acento: '#4a1a10', acentoTexto: '#ffe9c4', ambiente: 'viento' },
+    { id: 'rosado',   nombre: 'Cerezo en flor',   tono: 'oscuro', texto: '#4a1236', acento: '#4a1236', acentoTexto: '#ffe6ef', ambiente: 'viento' },
+    { id: 'morado',   nombre: 'Lavanda de noche', tono: 'claro',  texto: '#f8f5ff', acento: '#e6d4fa', acentoTexto: '#2a1658', ambiente: 'grillos' },
+    { id: 'azul',     nombre: 'Velero',           tono: 'claro',  texto: '#f8f9fb', acento: '#d4e8ff', acentoTexto: '#0f2a5c', ambiente: 'olas' },
+    { id: 'verde',    nombre: 'Bosque',           tono: 'oscuro', texto: '#143a28', acento: '#143a28', acentoTexto: '#e3f5d2', ambiente: 'lluvia' },
+  ];
+  const COLOR_ICONO = { enfoque: '#e8553d', corto: '#4fb286', largo: '#4f8fe0' };
+  const LIM = { enfoque: [1, 180], corto: [1, 60], largo: [1, 90], ciclos: [2, 10] };
+  const DEF = { enfoque: 25, corto: 5, largo: 15, ciclos: 4, autoDescanso: false, autoEnfoque: false, alarma: true,
+                notif: false, fondoDescansoOn: false, fondoDescanso: 'azul', ambiente: 'auto', volumen: .5 };
+  let cfg = { ...DEF, ...leer('pomo.cfg', {}) };
+  const guardarCfg = () => poner('pomo.cfg', cfg);
+  const dur = m => cfg[m] * 60000;
+
+  // ============ Estado ============
+  let modo = 'enfoque', restante = dur('enfoque'), fin = null, corriendo = false, pomodoro = 1;
+  let capa = 0, fondoActual = FONDOS[0], fondoElegido = localStorage.getItem('pomo.fondo') || FONDOS[0].id;
+  const reloj = $('reloj'), btnIniciar = $('iniciar');
+  const guardarSesion = () => poner('pomo.ses', { modo, restante, fin, corriendo, pomodoro });
+
+  // ============ Fondos ============
+  const url = id => `img/${id}.jpg`;
+  function ponerFondo(id, elegir = true) {
+    const tema = FONDOS.find(f => f.id === id) || FONDOS[0];
+    fondoActual = tema;
+    if (elegir) { fondoElegido = tema.id; localStorage.setItem('pomo.fondo', tema.id); }
+    const raiz = document.documentElement.style;
+    raiz.setProperty('--acento', tema.acento);
+    raiz.setProperty('--acento-texto', tema.acentoTexto);
+    raiz.setProperty('--texto', tema.texto);
+    document.body.dataset.tono = tema.tono;
+    const capas = [$('f1'), $('f2')];
+    const nueva = capas[capa ^= 1], vieja = capas[capa ^ 1];
+    nueva.style.backgroundImage = `url(${url(tema.id)})`;
+    nueva.classList.add('activo'); vieja.classList.remove('activo');
+    document.querySelectorAll('#selector button').forEach(b => b.classList.toggle('on', b.dataset.id === tema.id));
+    if (corriendo && modo === 'enfoque') ambiente(true);   // la escena puede cambiar el sonido sugerido
+  }
+  function fondoParaModo() {
+    return (cfg.fondoDescansoOn && modo !== 'enfoque') ? cfg.fondoDescanso : fondoElegido;
+  }
+  FONDOS.forEach(f => {
+    const b = document.createElement('button');
+    b.dataset.id = f.id; b.dataset.tip = f.nombre; b.setAttribute('aria-label', f.nombre);
+    b.style.backgroundImage = `url(${url(f.id)})`;
+    b.onclick = () => ponerFondo(f.id);
+    $('selector').appendChild(b);
+    const m = b.cloneNode();
+    m.removeAttribute('data-tip'); m.title = ''; m.dataset.fd = f.id;
+    m.onclick = () => { cfg.fondoDescanso = f.id; guardarCfg(); pintarAjustes(); if (modo !== 'enfoque') ponerFondo(fondoParaModo(), false); };
+    $('descansoSel').appendChild(m);
+  });
+
+  // ============ Audio: alarma y sonido ambiente (sintetizados, sin archivos) ============
+  let ac = null;
+  function audio() {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function sonarAlarma() {
+    const c = audio(), t0 = c.currentTime;
+    [[659.25, 0], [783.99, .22], [987.77, .44], [783.99, 1.2], [987.77, 1.42], [1318.5, 1.64]].forEach(([f, d]) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t0 + d);
+      g.gain.linearRampToValueAtTime(.22, t0 + d + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, t0 + d + 1.1);
+      o.connect(g).connect(c.destination); o.start(t0 + d); o.stop(t0 + d + 1.2);
+    });
+  }
+  function bufferRuido(c, tipo) {
+    const len = c.sampleRate * 4, b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+    let ult = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      if (tipo === 'marron') { ult = (ult + .02 * w) / 1.02; d[i] = ult * 3.5; } else d[i] = w;
+    }
+    return b;
+  }
+  function construir(c, tipo) {
+    const master = c.createGain(); master.gain.value = 0; master.connect(c.destination);
+    const fuentes = [];
+    const ruido = t => { const s = c.createBufferSource(); s.buffer = bufferRuido(c, t); s.loop = true; s.start(); fuentes.push(s); return s; };
+    const osc = (t, f) => { const o = c.createOscillator(); o.type = t; o.frequency.value = f; o.start(); fuentes.push(o); return o; };
+    const filtro = (t, f, q = 1) => { const x = c.createBiquadFilter(); x.type = t; x.frequency.value = f; x.Q.value = q; return x; };
+    const gan = v => { const g = c.createGain(); g.gain.value = v; return g; };
+    if (tipo === 'lluvia') {
+      ruido('blanco').connect(filtro('highpass', 900)).connect(filtro('lowpass', 9000)).connect(gan(.32)).connect(master);
+      ruido('marron').connect(filtro('lowpass', 500)).connect(gan(.5)).connect(master);
+    } else if (tipo === 'olas') {
+      const sw = gan(.5);
+      ruido('marron').connect(filtro('lowpass', 1000)).connect(sw).connect(master);
+      osc('sine', .1).connect(gan(.38)).connect(sw.gain);
+      osc('sine', .17).connect(gan(.15)).connect(sw.gain);
+    } else if (tipo === 'viento') {
+      const bp = filtro('bandpass', 450, .8), vg = gan(1.5);
+      ruido('blanco').connect(bp).connect(vg).connect(master);
+      osc('sine', .06).connect(gan(220)).connect(bp.frequency);
+      osc('sine', .11).connect(gan(.6)).connect(vg.gain);
+    } else if (tipo === 'grillos') {
+      [[4300, 14, .35], [4700, 11, .27]].forEach(([f, rapido, lento]) => {
+        const cg = gan(.02);
+        osc('sine', f).connect(cg).connect(master);
+        osc('sine', rapido).connect(gan(.02)).connect(cg.gain);
+        osc('sine', lento).connect(gan(.02)).connect(cg.gain);
+      });
+      ruido('marron').connect(filtro('lowpass', 300)).connect(gan(.1)).connect(master);
+    }
+    return { tipo, master, parar() { fuentes.forEach(s => { try { s.stop(); } catch {} }); master.disconnect(); } };
+  }
+  let amb = null;
+  function tipoAmbiente() {
+    if (cfg.ambiente === 'ninguno') return null;
+    return cfg.ambiente === 'auto' ? fondoActual.ambiente : cfg.ambiente;
+  }
+  function ambiente(sonar) {
+    const tipo = tipoAmbiente();
+    if (!sonar || !tipo) {
+      if (amb && ac) { const a = amb; amb = null; a.master.gain.setTargetAtTime(0, ac.currentTime, .3); setTimeout(() => a.parar(), 1600); }
+      return;
+    }
+    const c = audio();
+    if (amb && amb.tipo === tipo) { amb.master.gain.setTargetAtTime(cfg.volumen * .8, c.currentTime, .2); return; }
+    if (amb) { const a = amb; a.master.gain.setTargetAtTime(0, c.currentTime, .3); setTimeout(() => a.parar(), 1600); }
+    amb = construir(c, tipo);
+    amb.master.gain.setTargetAtTime(cfg.volumen * .8, c.currentTime, .6);
+  }
+
+  // ============ Spotify (reproductor incrustado + API de iFrame) ============
+  let spApi = null, spCtrl = null, spCreando = false, spYaSono = false;
+  const spInput = $('spInput'), spNota = $('spNota');
+  ['pomo.sp.tok', 'pomo.sp.cid', 'pomo.sp.ver', 'pomo.sp.ctx'].forEach(k => localStorage.removeItem(k));   // restos de la vinculación descartada
+  function spUri(txt) {
+    txt = txt.trim();
+    let m = txt.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)$/);
+    if (!m) m = txt.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]+)/);
+    return m ? `spotify:${m[1]}:${m[2]}` : null;
+  }
+  function spCrear(uri) {
+    if (spCreando || !spApi) return;
+    spCreando = true;
+    spApi.createController($('spEmbed'), { uri, width: '100%', height: 152 }, c => { spCtrl = c; spCreando = false; });
+  }
+  function spCargar() {
+    const uri = spUri(spInput.value);
+    if (!uri) { spNota.textContent = 'Ese enlace no parece de Spotify. Usa «Compartir → Copiar enlace».'; return; }
+    localStorage.setItem('pomo.sp', uri);
+    spYaSono = false;
+    if (spCtrl) spCtrl.loadUri(uri); else if (spApi) spCrear(uri);
+    else spNota.textContent = 'Cargando Spotify… prueba de nuevo en un momento.';
+  }
+  function musica(sonar) {
+    if (!spCtrl) return;
+    if (sonar) { spYaSono ? spCtrl.resume() : spCtrl.play(); spYaSono = true; } else spCtrl.pause();
+  }
+
+  window.onSpotifyIframeApiReady = api => {
+    spApi = api;
+    const guardada = localStorage.getItem('pomo.sp');
+    if (guardada) { spInput.value = guardada; spCrear(guardada); }
+  };
+  $('spCargar').onclick = spCargar;
+  spInput.addEventListener('keydown', e => { if (e.key === 'Enter') spCargar(); });
+
+  // ============ Agenda (tareas): ver agenda.js ============
+  $('agendaBtn').onclick = () => { cerrarPaneles(); Agenda.abrir(); };
+  $('tareaActiva').onclick = () => Agenda.abrir();
+
+  // ============ Estadísticas ============
+  function registrarPomodoro() {
+    const st = leer('pomo.stats', {}), k = fecha(new Date());
+    st[k] = st[k] || { n: 0, min: 0 };
+    st[k].n++; st[k].min += cfg.enfoque;
+    poner('pomo.stats', st);
+    Agenda.sumarPomodoro();
+  }
+  function pintarStats() {
+    const st = leer('pomo.stats', {}), dias = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      dias.push({ n: (st[fecha(d)] || {}).n || 0, l: 'DLMXJVS'[d.getDay()], hoy: i === 0 });
+    }
+    const h = st[fecha(new Date())] || { n: 0, min: 0 };
+    $('sHoy').textContent = h.n; $('sMin').textContent = h.min;
+    $('sSem').textContent = dias.reduce((s, d) => s + d.n, 0);
+    const max = Math.max(1, ...dias.map(d => d.n)), cont = $('sBarras'); cont.textContent = '';
+    dias.forEach(d => {
+      const c = document.createElement('div'); c.className = 'col' + (d.hoy ? ' hoy' : '');
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = d.n || '';
+      const b = document.createElement('div'); b.className = 'b'; b.style.height = (d.n / max * 70) + '%';
+      const l = document.createElement('span'); l.className = 'l'; l.textContent = d.l;
+      c.append(n, b, l); cont.appendChild(c);
+    });
+  }
+  const pomosHoy = () => (leer('pomo.stats', {})[fecha(new Date())] || {}).n || 0;
+
+  // ============ Icono de la pestaña (anillo de progreso) ============
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  let ultimoIcono = '';
+  function pintarIcono() {
+    const frac = Math.max(0, Math.min(1, restante / dur(modo))), clave = modo + Math.round(frac * 120);
+    if (clave === ultimoIcono) return; ultimoIcono = clave;
+    const x = cv.getContext('2d'); x.clearRect(0, 0, 64, 64);
+    x.lineWidth = 9; x.lineCap = 'round';
+    x.strokeStyle = 'rgba(128,128,128,.35)'; x.beginPath(); x.arc(32, 32, 24, 0, 7); x.stroke();
+    x.strokeStyle = COLOR_ICONO[modo]; x.beginPath(); x.arc(32, 32, 24, -Math.PI / 2, -Math.PI / 2 + frac * 2 * Math.PI); x.stroke();
+    $('favicon').href = cv.toDataURL('image/png');
+  }
+
+  // ============ Timer ============
+  function pintar() {
+    const s = Math.ceil(restante / 1000);
+    const txt = pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+    reloj.textContent = txt;
+    document.title = (corriendo ? txt + ' · ' : '') + (modo === 'enfoque' ? 'Enfoque' : 'Descanso');
+    $('ciclo').textContent = `Pomodoro ${pomodoro} de ${cfg.ciclos} · hoy ${pomosHoy()}`;
+    pintarIcono();
+  }
+  function cambiarModo(m) {
+    musica(false); ambiente(false);
+    modo = m; corriendo = false; fin = null; restante = dur(m);
+    document.querySelectorAll('#modos button').forEach(b => b.classList.toggle('on', b.dataset.modo === m));
+    btnIniciar.textContent = 'Iniciar';
+    document.body.classList.remove('zen');
+    const f = fondoParaModo(); if (f !== fondoActual.id) ponerFondo(f, false);
+    guardarSesion(); pintar();
+  }
+  function alternar() {
+    if (corriendo) {
+      restante = fin - Date.now(); corriendo = false; btnIniciar.textContent = 'Continuar';
+      document.body.classList.remove('zen');
+      musica(false); ambiente(false);
+    } else {
+      audio();   // activa el audio con este gesto del usuario
+      fin = Date.now() + restante; corriendo = true; btnIniciar.textContent = 'Pausar';
+      if (modo === 'enfoque') { musica(true); ambiente(true); }
+    }
+    guardarSesion(); pintar();
+  }
+  function avisarFin(eraEnfoque) {
+    const msg = eraEnfoque ? 'Pomodoro terminado. Toca descansar.' : 'Descanso terminado. A enfocarse.';
+    if (cfg.alarma) { try { sonarAlarma(); } catch {} }
+    aviso(msg);
+    if (cfg.notif && 'Notification' in window && Notification.permission === 'granted') {
+      try { new Notification(eraEnfoque ? 'Pomodoro terminado' : 'Descanso terminado', { body: msg }); } catch {}
+    }
+  }
+  function terminar(natural = false, ausente = false) {
+    const eraEnfoque = modo === 'enfoque';
+    if (natural) { if (eraEnfoque) registrarPomodoro(); if (!ausente) avisarFin(eraEnfoque); }
+    let sig;
+    if (eraEnfoque) sig = pomodoro % cfg.ciclos === 0 ? 'largo' : 'corto';
+    else { pomodoro = modo === 'largo' ? 1 : pomodoro + 1; sig = 'enfoque'; }
+    cambiarModo(sig);
+    if (natural && !ausente && (sig === 'enfoque' ? cfg.autoEnfoque : cfg.autoDescanso)) alternar();
+    // Terminó el descanso y no arranca solo: lo natural es elegir la siguiente tarea
+    else if (natural && !ausente && sig === 'enfoque' && Agenda.hayHoy()) Agenda.abrirHoy();
+  }
+  setInterval(() => {            // calcula contra la hora real, no suma segundos
+    if (!corriendo) return;
+    restante = fin - Date.now();
+    if (restante <= 0) terminar(true); else pintar();
+  }, 250);
+
+  btnIniciar.onclick = alternar;
+  $('reiniciar').onclick = () => cambiarModo(modo);
+  $('saltar').onclick = () => terminar(false);
+  document.querySelectorAll('#modos button').forEach(b => b.onclick = () => cambiarModo(b.dataset.modo));
+
+  // ============ Paneles ============
+  function abrirPanel(id) {
+    const p = $(id), abrir = !p.classList.contains('abierto');
+    document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto'));
+    if (abrir) { p.classList.add('abierto'); if (id === 'stats') pintarStats(); }
+    document.querySelectorAll('[data-panel]').forEach(b => b.classList.toggle('on', abrir && b.dataset.panel === id));
+  }
+  function cerrarPaneles() { document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto')); document.querySelectorAll('[data-panel]').forEach(b => b.classList.remove('on')); }
+  document.querySelectorAll('[data-panel]').forEach(b => b.onclick = () => abrirPanel(b.dataset.panel));
+  document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra, .tarea-activa')) cerrarPaneles(); });
+
+  // ============ Ajustes ============
+  function pintarAjustes() {
+    ['enfoque', 'corto', 'largo'].forEach(k => document.querySelector(`[data-o="${k}"]`).textContent = cfg[k] + ' min');
+    document.querySelector('[data-o="ciclos"]').textContent = cfg.ciclos;
+    document.querySelectorAll('.sw').forEach(b => { const on = !!cfg[b.dataset.k]; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    document.querySelectorAll('[data-acc="amb"]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.ambiente));
+    document.querySelectorAll('#descansoSel button').forEach(b => b.classList.toggle('on', b.dataset.fd === cfg.fondoDescanso));
+    $('volumen').value = Math.round(cfg.volumen * 100);
+  }
+  $('ajustes').addEventListener('click', e => {
+    const b = e.target.closest('[data-acc]'); if (!b) return;
+    const k = b.dataset.k;
+    if (b.dataset.acc === 'paso') {
+      const antes = cfg[k], [mn, mx] = LIM[k];
+      cfg[k] = Math.min(mx, Math.max(mn, antes + +b.dataset.d));
+      if (!corriendo && k === modo && restante === antes * 60000) restante = dur(modo);   // no toca un tiempo ya empezado
+    } else if (b.dataset.acc === 'sw') {
+      cfg[k] = !cfg[k];
+      if (k === 'notif' && cfg.notif) {
+        if (!('Notification' in window)) { cfg.notif = false; aviso('Este navegador no admite notificaciones'); }
+        else Notification.requestPermission().then(p => { if (p !== 'granted') { cfg.notif = false; guardarCfg(); pintarAjustes(); aviso('No se concedió el permiso de notificaciones'); } });
+      }
+      if (k === 'fondoDescansoOn') { const f = fondoParaModo(); if (f !== fondoActual.id) ponerFondo(f, false); }
+    } else if (b.dataset.acc === 'amb') {
+      cfg.ambiente = b.dataset.v;
+      if (corriendo && modo === 'enfoque') ambiente(true);
+      else if (cfg.ambiente !== 'ninguno') { audio(); ambiente(true); setTimeout(() => { if (!(corriendo && modo === 'enfoque')) ambiente(false); }, 2500); }   // vista previa breve
+    }
+    guardarCfg(); pintarAjustes(); pintar(); guardarSesion();
+  });
+  $('volumen').addEventListener('input', e => {
+    cfg.volumen = e.target.value / 100; guardarCfg();
+    if (amb && ac) amb.master.gain.setTargetAtTime(cfg.volumen * .8, ac.currentTime, .05);
+  });
+
+  // ============ Pantalla completa, teclado y modo zen ============
+  function pantallaCompleta() {
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {});
+  }
+  $('pantalla').onclick = pantallaCompleta;
+  addEventListener('keydown', e => {
+    if (document.body.classList.contains('agenda-abierta')) return;   // la agenda maneja su propio teclado
+    if (e.target.closest('input, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === 'Space') { e.preventDefault(); alternar(); }
+    else if (e.key === 'r' || e.key === 'R') cambiarModo(modo);
+    else if (e.key === 's' || e.key === 'S') terminar(false);
+    else if (e.key === 'f' || e.key === 'F') pantallaCompleta();
+    else if (e.key === 'Escape') cerrarPaneles();
+  });
+  let idle;
+  addEventListener('mousemove', () => {
+    document.body.classList.remove('zen');
+    clearTimeout(idle);
+    if (corriendo) idle = setTimeout(() => { if (!document.body.classList.contains('agenda-abierta')) document.body.classList.add('zen'); }, 4000);
+  });
+
+  // ============ Arranque: recupera la sesión si se cerró o recargó la página ============
+  ponerFondo(fondoElegido);
+  const ses = leer('pomo.ses', null);
+  let terminoFuera = false;
+  if (ses && ['enfoque', 'corto', 'largo'].includes(ses.modo)) {
+    modo = ses.modo; pomodoro = ses.pomodoro || 1; restante = ses.restante > 0 ? ses.restante : dur(modo);
+    document.querySelectorAll('#modos button').forEach(b => b.classList.toggle('on', b.dataset.modo === modo));
+    if (ses.corriendo && ses.fin) {
+      if (ses.fin > Date.now()) { fin = ses.fin; restante = fin - Date.now(); corriendo = true; btnIniciar.textContent = 'Pausar'; }
+      else terminoFuera = true;
+    } else if (restante !== dur(modo)) btnIniciar.textContent = 'Continuar';
+  }
+  const f0 = fondoParaModo(); if (f0 !== fondoActual.id) ponerFondo(f0, false);
+  // Con tarea activa se muestra su nombre; sin ella, un campo para escribir en qué te enfocas
+  Agenda.iniciar({ alCambiarActiva: txt => {
+    const b = $('tareaActiva'), i = $('enfoqueInput');
+    b.textContent = txt; b.hidden = !txt; i.hidden = !!txt;
+  } });
+  $('enfoqueInput').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !e.target.value.trim()) return;
+    Agenda.crearRapida(e.target.value); e.target.value = '';
+  });
+  pintarAjustes(); pintar();
+  if (terminoFuera) { terminar(true, true); aviso('El tiempo terminó mientras no estabas.'); }
+  else if (corriendo) aviso('Sesión recuperada. El tiempo sigue corriendo.');
+  // ¿Qué mostrar al abrir? Un enfoque a medias → el timer; libre y con tareas para hoy → Hoy; libre y sin tareas → timer con su campo
+  else if (modo === 'enfoque' && restante === dur('enfoque') && Agenda.hayHoy()) Agenda.abrirHoy();
+</script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+</body>
+</html>
