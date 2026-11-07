@@ -37,12 +37,13 @@
     hecha: false, hechaEn: null, subs: [], est: 0, pomos: 0, rep: null, veces: 0, creada: ahora, t: ahora, ...datos,
   });
   const INBOX = () => ({ id: 'inbox', nombre: 'Pendientes', color: COLORES[0], icono: '', orden: 0, t: 0 });
-  L.vacio = () => ({ v: 1, listas: [INBOX()], tareas: [], borrados: {}, registro: [] });
+  L.vacio = () => ({ v: 1, listas: [INBOX()], grupos: [], tareas: [], borrados: {}, registro: [] });
   const horaValida = h => typeof h === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(h);
   L.normalizar = raw => {
     const e = L.vacio();
     if (!raw || typeof raw !== 'object') return e;
-    if (Array.isArray(raw.listas)) e.listas = raw.listas.filter(l => l && l.id && l.nombre).map(l => ({ color: COLORES[0], icono: '', orden: 0, t: 0, ...l }));
+    if (Array.isArray(raw.listas)) e.listas = raw.listas.filter(l => l && l.id && l.nombre).map(l => ({ color: COLORES[0], icono: '', orden: 0, t: 0, grupo: '', ...l }));
+    if (Array.isArray(raw.grupos)) e.grupos = raw.grupos.filter(g => g && g.id && g.nombre).map(g => ({ orden: 0, t: 0, ...g }));
     if (!e.listas.some(l => l.id === 'inbox')) e.listas.unshift(INBOX());
     e.tareas = (Array.isArray(raw.tareas) ? raw.tareas : []).filter(t => t && t.id).map(t => ({
       ...L.nueva({}, 0), ...t, subs: Array.isArray(t.subs) ? t.subs : [], etiquetas: Array.isArray(t.etiquetas) ? t.etiquetas : [],
@@ -213,7 +214,7 @@
     const listas = unir(a.listas, b.listas);
     if (!listas.some(l => l.id === 'inbox')) listas.unshift(INBOX());
     const registro = unir(a.registro, b.registro).filter(r => !ahora || ahora - r.t <= 400 * DIA_MS);
-    return { v: 1, listas, tareas: unir(a.tareas, b.tareas), borrados: bor, registro };
+    return { v: 1, listas, grupos: unir(a.grupos, b.grupos), tareas: unir(a.tareas, b.tareas), borrados: bor, registro };
   };
   L.canon = e => JSON.stringify(L.fusionar(e, e, 0));
 
@@ -299,6 +300,9 @@
     paquete: '<path d="M12 3l8 4v10l-8 4-8-4V7z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
   };
   Object.keys(ICONOS).forEach(k => { ICO['i_' + k] = ICONOS[k]; });
+  ICO.carpeta = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
+  ICO.carpetamas = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10.5v5M9.5 13h5"/>';
+  ICO.chev = '<path d="M9 6l6 6-6 6"/>';
   const PALETA = ['#4f8fe0', '#3aa6b9', '#4fb286', '#9bbf4a', '#f0a93b', '#e8853d', '#e8553d', '#e06fa4', '#9b6ad8', '#6c7ae0', '#8a6a4f', '#7b8794'];
   /** Cuadrito con el icono (y el color) de una tarea o lista; nada si no tiene ninguno. */
   function insignia(o) {
@@ -680,12 +684,35 @@
       h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.personalizar = true; todo(); } }, ico('i_arte'), h('span', null, 'Personalizar')),
       l.id !== 'inbox' && h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); irALista(l); ui.renombrar = true; todo(); } }, ico('i_lapiz'), h('span', null, 'Renombrar')),
       l.id !== 'inbox' && eliminar,
-      h('div', { class: 'ag-ctx-pista' }, 'Para cambiar su lugar, mantenla pulsada y arrástrala'));
+      h('div', { class: 'ag-ctx-pista' }, 'Para cambiar su lugar o meterla en un grupo, mantenla pulsada y arrástrala'));
     refs.raiz.append(m);
     const r = m.getBoundingClientRect(), margen = 10;
     m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
     m.style.top = Math.max(margen, Math.min(y, innerHeight - r.height - margen)) + 'px';
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
+  }
+  const grupoPorId = id => E.grupos.find(g => g.id === id) || null;
+  const gruposOrdenados = () => [...E.grupos].sort((a, b) => (a.orden || 0) - (b.orden || 0) || (a.t || 0) - (b.t || 0));
+  const grupoDe = l => (l.grupo ? grupoPorId(l.grupo) : null);   // un grupo borrado en otro dispositivo deja la lista suelta
+  const cerrados = new Set((() => { try { return JSON.parse(localStorage.getItem('agenda.gcerrados') || '[]'); } catch { return []; } })());
+  const guardarCerrados = () => { try { localStorage.setItem('agenda.gcerrados', JSON.stringify([...cerrados])); } catch { /* sin espacio */ } };
+  function eliminarGrupo(g) {
+    const ahora = Date.now();
+    E.listas.filter(l => l.grupo === g.id).forEach(l => { l.grupo = ''; l.t = ahora; });
+    E.grupos = E.grupos.filter(x => x.id !== g.id); E.borrados[g.id] = ahora; cerrados.delete(g.id);
+    guardar(); todo();
+  }
+  function nuevoGrupo() {
+    const ahora = Date.now(), g = { id: 'g' + ahora.toString(36), nombre: 'Nuevo grupo', orden: Math.max(0, ...E.grupos.map(x => x.orden || 0)) + 1, t: ahora };
+    E.grupos.push(g); guardar(); ui.renombrarGrupo = g.id; ui.enfocarGrupo = true; ui.sidebar = true; lado();
+  }
+  function nuevaListaEn(g) {
+    const l = { id: 'l' + Date.now().toString(36), nombre: 'Nueva lista', color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, grupo: g.id, t: Date.now() };
+    E.listas.push(l); cerrados.delete(g.id); guardarCerrados(); guardar(); irALista(l); ui.personalizar = true; ui.enfocarNombre = true; todo();
+  }
+  function colocarEnGrupo(l, gid) {
+    l.grupo = gid; l.orden = Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1; l.t = Date.now();
+    cerrados.delete(gid); guardarCerrados(); guardar(); todo();
   }
   const listasOrdenadas = () => [...E.listas].sort((a, b) => (a.orden || 0) - (b.orden || 0) || (a.t || 0) - (b.t || 0));
   /** Coloca la lista `l` justo antes (o después) de `idDestino`. */
@@ -693,7 +720,8 @@
     const xs = listasOrdenadas().filter(x => x.id !== l.id), i = xs.findIndex(x => x.id === idDestino);
     if (i < 0) return;
     xs.splice(despues ? i + 1 : i, 0, l);
-    const ahora = Date.now();
+    const ahora = Date.now(), g = grupoDe(xs[despues ? i : i + 1]) ? xs[despues ? i : i + 1].grupo : '';
+    if ((l.grupo || '') !== (g || '')) { l.grupo = g || ''; l.t = ahora; }
     xs.forEach((x, k) => { if ((x.orden || 0) !== k) { x.orden = k; x.t = ahora; } });
     guardar(); todo();
   }
@@ -721,7 +749,12 @@
     return h('div', { class: 'ag-estilo' },
       h('div', { class: 'ag-campo' }, h('label', { for: 'agNombreLista' }, 'Nombre'), nombre),
       h('div', { class: 'ag-campo' }, h('label', null, 'Color'), paleta(l.color, c => cambiar({ color: c || COLORES[0] }), false)),
-      h('div', { class: 'ag-campo' }, h('label', null, 'Icono'), selectorIconos(l.icono, k => cambiar({ icono: k }))));
+      h('div', { class: 'ag-campo' }, h('label', null, 'Icono'), selectorIconos(l.icono, k => cambiar({ icono: k }))),
+      l.id !== 'inbox' && h('div', { class: 'ag-campo' }, h('label', null, 'Grupo'), h('div', { class: 'ag-chips' },
+        h('button', { class: 'ag-chip' + (!grupoDe(l) ? ' on' : ''), onclick: () => cambiar({ grupo: '' }) }, 'Sin grupo'),
+        gruposOrdenados().map(g => h('button', { class: 'ag-chip' + (l.grupo === g.id ? ' on' : ''), onclick: () => cambiar({ grupo: g.id }) }, g.nombre)),
+        h('button', { class: 'ag-chip', onclick: () => { const ahora = Date.now(), g = { id: 'g' + ahora.toString(36), nombre: 'Nuevo grupo', orden: Math.max(0, ...E.grupos.map(x => x.orden || 0)) + 1, t: ahora }; E.grupos.push(g); ui.renombrarGrupo = g.id; ui.enfocarGrupo = true; cambiar({ grupo: g.id }); } }, '+ Grupo')))
+    );
   }
 
   // ---------------------------------------------------------------- rutinas: seguimiento por días cumplidos
@@ -806,8 +839,8 @@
     const item = (tipo, nombre, icono, n, extra = {}) => { let largo = false, tm = 0, sx = 0, sy = 0;
       const esLista = tipo === 'lista';
       let alzada = false, movio = false, destino = null, pid = null, el = null;
-      const hermanas = () => [...el.parentElement.querySelectorAll('.ag-nav[data-lid]')].filter(x => x !== el);
-      const quitarGuia = () => el && el.parentElement && el.parentElement.querySelectorAll('.guia-antes,.guia-despues').forEach(x => x.classList.remove('guia-antes', 'guia-despues'));
+      const hermanas = () => [...refs.lado.querySelectorAll('.ag-nav[data-lid], .ag-grupo-cab[data-gid]')].filter(x => x !== el && x.offsetParent);
+      const quitarGuia = () => refs.lado.querySelectorAll('.guia-antes,.guia-despues,.guia-dentro').forEach(x => x.classList.remove('guia-antes', 'guia-despues', 'guia-dentro'));
       const soltarLista = e => {
         clearTimeout(tm);
         if (!alzada) return;
@@ -815,7 +848,8 @@
         try { el.releasePointerCapture(pid); } catch { /* ya liberada */ }
         setTimeout(() => { largo = false; }, 120);
         if (e && e.type === 'pointercancel') return;
-        if (movio && destino) colocarLista(lista(extra.id), destino.id, destino.despues);
+        if (movio && destino && destino.grupo) colocarEnGrupo(lista(extra.id), destino.id);
+        else if (movio && destino) colocarLista(lista(extra.id), destino.id, destino.despues);
         else if (!movio) menuLista(lista(extra.id), sx, sy);
       };
       const pulsacion = !esLista ? {} : {
@@ -833,12 +867,15 @@
           if (!movio) return;
           quitarGuia();
           const otras = hermanas(); if (!otras.length) { destino = null; return; }
-          const sig = otras.find(x => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
-          const ref = sig || otras[otras.length - 1];
+          const sobre = otras.find(x => { const r = x.getBoundingClientRect(); return x.dataset.gid && e.clientY > r.top + r.height * .25 && e.clientY < r.bottom - r.height * .25; });
+          if (sobre) { sobre.classList.add('guia-dentro'); destino = { id: sobre.dataset.gid, grupo: true }; return; }   // soltar sobre un grupo: entra en él
+          const sig = otras.filter(x => x.dataset.lid).find(x => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+          const ref = sig || otras.filter(x => x.dataset.lid).pop();
+          if (!ref) { destino = null; return; }
           ref.classList.add(sig ? 'guia-antes' : 'guia-despues');
           destino = { id: ref.dataset.lid, despues: !sig };
         },
-        onpointerup: soltarLista, onpointercancel: soltarLista,
+        onpointerup: soltarLista, onpointercancel: soltarLista, ontouchmove: e => { if (alzada && e.cancelable) e.preventDefault(); }, onselectstart: e => e.preventDefault(),
         oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
       };
       return h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
@@ -849,13 +886,14 @@
       h('div', { class: 'ag-seccion' }, item('hoy', 'Hoy', 'hoy', cu.hoy), item('proximas', 'Próximas', 'prox', cu.proximas), item('todas', 'Todas', 'todas', cu.todas),
         item('rutinas', 'Rutinas', 'rutinas', cu.rutinas), item('historial', 'Historial', 'hechas', 0)),
       h('div', { class: 'ag-seccion' },
-        h('div', { class: 'ag-sec-tit' }, 'Listas', h('button', { class: 'ag-mini', 'aria-label': 'Nueva lista', onclick: () => {
+        h('div', { class: 'ag-sec-tit' }, 'Listas', h('span', { class: 'ag-sec-bot' }, h('button', { class: 'ag-mini', 'aria-label': 'Nuevo grupo de listas', dataset: { tip: 'Nuevo grupo' }, onclick: nuevoGrupo }, ico('carpetamas')), h('button', { class: 'ag-mini', 'aria-label': 'Nueva lista', onclick: () => {
           if (matchMedia('(max-width: 760px)').matches) {   // teléfono: se crea al instante y el nombre se escribe en Personalizar
             const l = { id: 'l' + Date.now().toString(36), nombre: 'Nueva lista', color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, t: Date.now() };
             E.listas.push(l); guardar(); irALista(l); ui.personalizar = true; ui.enfocarNombre = true; todo(); return;
           }
-          ui.nuevaLista = true; lado(); } }, ico('mas'))),
-        listasOrdenadas().map(l => item('lista', l.nombre, null, cu.listas[l.id] || 0, { id: l.id, color: l.color, icono: l.icono })),
+          ui.nuevaLista = true; lado(); } }, ico('mas')))),
+        listasOrdenadas().filter(l => !grupoDe(l)).map(l => item('lista', l.nombre, null, cu.listas[l.id] || 0, { id: l.id, color: l.color, icono: l.icono })),
+        gruposOrdenados().map(g => grupoUI(g, cu, item)),
         ui.nuevaLista && h('input', { type: 'text', class: 'ag-input chico', placeholder: 'Nombre de la lista', maxLength: 40, id: 'agNuevaLista',
           onkeydown: e => { e.stopPropagation(); if (e.key === 'Escape') { ui.nuevaLista = false; lado(); } if (e.key === 'Enter') e.target.blur(); },
           onblur: e => { const n = e.target.value.trim(); ui.nuevaLista = false;
@@ -864,6 +902,76 @@
         Object.keys(cu.etiquetas).sort().map(x => item('etiqueta', '#' + x, null, cu.etiquetas[x], { nombre: x, color: 'transparent' }))),
       nubeUI()].filter(Boolean));
     if (ui.nuevaLista) setTimeout(() => { const i = document.getElementById('agNuevaLista'); if (i) i.focus(); }, 0);
+  }
+  /** Un grupo de listas: carpeta que se pliega; mantenida pulsada abre su menú o se arrastra para cambiar su lugar. */
+  function grupoUI(g, cu, item) {
+    const mias = listasOrdenadas().filter(l => l.grupo === g.id), cerrado = cerrados.has(g.id);
+    const total = mias.reduce((n, l) => n + (cu.listas[l.id] || 0), 0);
+    let tm = 0, sx = 0, sy = 0, alzada = false, movio = false, destino = null, largo = false, pid = null, cab = null;
+    const quitar = () => refs.lado.querySelectorAll('.guia-antes,.guia-despues').forEach(x => x.classList.remove('guia-antes', 'guia-despues'));
+    const soltar = e => {
+      clearTimeout(tm); if (!alzada) return;
+      alzada = false; quitar(); cab.classList.remove('arrastrando'); cab.style.transform = '';
+      try { cab.releasePointerCapture(pid); } catch { /* ya liberada */ }
+      setTimeout(() => { largo = false; }, 120);
+      if (e && e.type === 'pointercancel') return;
+      if (movio && destino) {
+        const xs = gruposOrdenados().filter(x => x.id !== g.id), i = xs.findIndex(x => x.id === destino.id);
+        if (i >= 0) { xs.splice(destino.despues ? i + 1 : i, 0, g); const ahora = Date.now(); xs.forEach((x, k) => { if ((x.orden || 0) !== k) { x.orden = k; x.t = ahora; } }); guardar(); todo(); }
+      } else if (!movio) menuGrupo(g, sx, sy);
+    };
+    if (ui.renombrarGrupo === g.id) {
+      const inp = h('input', { type: 'text', class: 'ag-input chico', value: g.nombre, maxLength: 40, placeholder: 'Nombre del grupo',
+        onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = g.nombre; inp.blur(); } },
+        onblur: () => { const n = inp.value.trim(); if (n && n !== g.nombre) { g.nombre = n; g.t = Date.now(); guardar(); } ui.renombrarGrupo = null; lado(); listaUI(); } });
+      if (ui.enfocarGrupo) { ui.enfocarGrupo = false; setTimeout(() => { inp.focus(); inp.select(); }, 60); }
+      else setTimeout(() => { inp.focus(); inp.select(); }, 0);
+      return h('div', { class: 'ag-grupo' }, h('div', { class: 'ag-grupo-ren' }, ico('carpeta'), inp));
+    }
+    const cabecera = cab = h('button', { class: 'ag-nav ag-grupo-cab', dataset: { gid: g.id }, 'aria-expanded': String(!cerrado),
+      onpointerdown: e => { largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
+        tm = setTimeout(() => { largo = alzada = true; cerrarMenuCtx(); cab.classList.add('arrastrando'); try { cab.setPointerCapture(pid); } catch { /* sin captura */ }
+          if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } } }, 450); },
+      onpointermove: e => {
+        if (!alzada) { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clearTimeout(tm); return; }
+        e.preventDefault();
+        const dy = e.clientY - sy; if (Math.abs(dy) > 8) movio = true;
+        cab.style.transform = `translateY(${dy}px) scale(1.03)`;
+        if (!movio) return;
+        quitar();
+        const otras = [...refs.lado.querySelectorAll('.ag-grupo-cab')].filter(x => x !== cab);
+        if (!otras.length) { destino = null; return; }
+        const sig = otras.find(x => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+        const ref = sig || otras[otras.length - 1];
+        ref.classList.add(sig ? 'guia-antes' : 'guia-despues'); destino = { id: ref.dataset.gid, despues: !sig };
+      },
+      onpointerup: soltar, onpointercancel: soltar, ontouchmove: e => { if (alzada && e.cancelable) e.preventDefault(); },
+      oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuGrupo(g, e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
+      onclick: () => { if (largo) return; if (cerrados.has(g.id)) cerrados.delete(g.id); else cerrados.add(g.id); guardarCerrados(); lado(); } },
+      h('span', { class: 'ag-chev' }, ico('chev')), h('span', { class: 'ag-ni' }, ico('carpeta')), h('span', { class: 'ag-nav-t' }, g.nombre), total > 0 && h('em', null, total));
+    return h('div', { class: 'ag-grupo' + (cerrado ? ' cerrado' : '') }, cabecera,
+      !cerrado && h('div', { class: 'ag-grupo-lista' },
+        mias.map(l => item('lista', l.nombre, null, cu.listas[l.id] || 0, { id: l.id, color: l.color, icono: l.icono })),
+        mias.length === 0 && h('div', { class: 'ag-grupo-vacio' }, 'Arrastra listas aquí')));
+  }
+  function menuGrupo(g, x, y) {
+    cerrarMenuCtx();
+    const eliminar = h('button', { class: 'ag-ctx-op peligro', role: 'menuitem', onclick: e => {
+      e.stopPropagation();
+      if (!eliminar.dataset.armado) { eliminar.dataset.armado = '1'; eliminar.lastChild.textContent = '¿Seguro? Sus listas quedan sueltas'; return; }
+      cerrarMenuCtx(); eliminarGrupo(g);
+    } }, ico('i_limpieza'), h('span', null, 'Eliminar grupo'));
+    const m = h('div', { class: 'ag-ctx', id: 'agMenuCtx', role: 'menu' },
+      h('div', { class: 'ag-ctx-tit' }, g.nombre),
+      h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); nuevaListaEn(g); } }, ico('mas'), h('span', null, 'Nueva lista aquí')),
+      h('button', { class: 'ag-ctx-op', role: 'menuitem', onclick: e => { e.stopPropagation(); cerrarMenuCtx(); ui.renombrarGrupo = g.id; lado(); } }, ico('i_lapiz'), h('span', null, 'Renombrar')),
+      eliminar,
+      h('div', { class: 'ag-ctx-pista' }, 'Mantenlo pulsado y arrástralo para cambiar su lugar'));
+    refs.raiz.append(m);
+    const r = m.getBoundingClientRect(), margen = 10;
+    m.style.left = Math.max(margen, Math.min(x, innerWidth - r.width - margen)) + 'px';
+    m.style.top = Math.max(margen, Math.min(y, innerHeight - r.height - margen)) + 'px';
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
   }
   function hace(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'ahora mismo' : m < 60 ? `hace ${m} min` : `hace ${Math.round(m / 60)} h`; }
   /** Copia en la nube: una fila discreta al pie de la barra lateral y, al tocarla, un pequeño menú. */
