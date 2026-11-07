@@ -616,6 +616,7 @@
     refs.cuenta.textContent = xs.length ? `${xs.length} ${xs.length === 1 ? 'tarea' : 'tareas'}` : '';
     c.textContent = '';
     if (!ui.q && ui.vista.tipo === 'lista' && ui.personalizar) c.append(estiloLista(lista(ui.vista.id)));
+    if (!ui.q && ui.vista.tipo === 'lista') c.append(resumenLista(lista(ui.vista.id), hoy));
     if (!xs.length) {
       const msg = { hoy: 'Nada para hoy. Disfruta o añade algo arriba.', proximas: 'Sin tareas con fecha futura.', rutinas: 'Aún no tienes rutinas. Abre una tarea y elige «Repetir».', hechas: 'Todavía no has completado ninguna.' }[ui.vista.tipo] || 'No hay tareas aquí.';
       c.append(h('div', { class: 'ag-vacio' }, ui.q ? 'Sin resultados.' : msg));
@@ -645,6 +646,34 @@
       refs.pie.append(h('button', { class: 'ag-chip' + (ui.verHechas ? ' on' : ''), onclick: () => { ui.verHechas = !ui.verHechas; listaUI(); } }, ui.verHechas ? 'Ocultar completadas' : 'Mostrar completadas'));
     }
     accionesLista();
+  }
+  /** Resumen de una lista: qué contiene, qué toca hacer después, pasos, etiquetas y tiempo. */
+  function resumenLista(l, hoy) {
+    const todas = E.tareas.filter(t => t.lista === l.id), pend = todas.filter(t => !t.hecha), hechas = todas.length - pend.length;
+    const venc = pend.filter(t => { const d = dia(t); return d && d < hoy; }).length;
+    const sig = pend.filter(t => dia(t)).sort(cmpFecha)[0] || null;
+    let pasosT = 0, pasosH = 0, pomos = 0, est = 0, min = 0;
+    const etq = {};
+    for (const t of todas) {
+      if (!t.hecha) { pasosT += t.subs.length; pasosH += t.subs.filter(x => x.hecha).length; est += t.est || 0; min += t.dur || 0; }
+      pomos += t.pomos || 0;
+      if (!t.hecha) for (const x of t.etiquetas) etq[x] = (etq[x] || 0) + 1;
+    }
+    const dato = (n, txt, cls) => h('div', { class: 'ag-res-dato' + (cls ? ' ' + cls : '') }, h('b', null, n), h('span', null, txt));
+    if (!todas.length) return h('div', { class: 'ag-resumen-lista vacio' }, 'Lista vacía: escribe arriba la primera tarea.');
+    const pasosFalta = pasosT - pasosH;
+    return h('div', { class: 'ag-resumen-lista' },
+      h('div', { class: 'ag-res-datos' },
+        dato(pend.length, pend.length === 1 ? 'pendiente' : 'pendientes'),
+        venc > 0 && dato(venc, venc === 1 ? 'vencida' : 'vencidas', 'vencida'),
+        hechas > 0 && dato(hechas, hechas === 1 ? 'completada' : 'completadas'),
+        pasosT > 0 && dato(pasosFalta, pasosFalta === 1 ? 'paso por hacer' : 'pasos por hacer'),
+        pomos > 0 && dato(pomos, pomos === 1 ? 'pomodoro' : 'pomodoros')),
+      sig && h('button', { class: 'ag-res-sig', onclick: () => seleccionar(sig.id) }, h('i', null, 'Sigue'), h('span', null, sig.titulo || '(sin título)'),
+        h('em', null, L.etiquetaFecha(dia(sig), hoy) + (sig.hora ? ' · ' + sig.hora : ''))),
+      (min > 0 || est > 0) && h('p', { class: 'ag-nota' }, [min > 0 && `Tiempo previsto: ${textoDur(min)}`, est > 0 && `${est} pomodoros estimados`].filter(Boolean).join(' · ')),
+      Object.keys(etq).length > 0 && h('div', { class: 'ag-chips' }, h('span', { class: 'ag-res-lab' }, 'Etiquetas'),
+        Object.keys(etq).sort().map(x => h('button', { class: 'ag-chip', onclick: () => { ui.vista = { tipo: 'etiqueta', nombre: x }; ui.verHechas = false; todo(); } }, `#${x} · ${etq[x]}`))));
   }
   function accionesLista() {
     const a = refs.acciones; a.textContent = '';

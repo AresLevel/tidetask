@@ -155,3 +155,17 @@ body[data-vista="enfoque"] .agenda { display: none; }
   .panel#ajustes, .panel#musica { padding-top: calc(1.3rem + .4rem); }
   .ag-nube { margin-top: .6rem; }
 }
+
+/* ---- Resumen de la lista ---- */
+.ag-resumen-lista { display: flex; flex-direction: column; gap: .8rem; margin: .2rem 0 1rem; padding-bottom: 1rem; border-bottom: 1px solid color-mix(in srgb, var(--texto) 16%, transparent); }
+.ag-resumen-lista.vacio { font-family: var(--serif); font-style: italic; color: var(--texto-suave); }
+.ag-res-datos { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; }
+.ag-res-dato { display: flex; flex-direction: column; }
+.ag-res-dato b { font-family: var(--serif); font-size: 1.9rem; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; }
+.ag-res-dato span { font-size: .72rem; color: var(--texto-suave); }
+.ag-res-dato.vencida b { color: var(--vencida); }
+.ag-res-sig { display: flex; align-items: baseline; gap: .6rem; padding: .3rem 0; border: 0; background: none; text-align: left; cursor: pointer; color: inherit; font: inherit; text-shadow: inherit; }
+.ag-res-sig i { font-family: var(--serif); font-size: .85rem; color: var(--texto-suave); }
+.ag-res-sig span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-res-sig em { font-style: normal; font-size: .78rem; color: var(--texto-suave); white-space: nowrap; }
+.ag-res-lab { font-family: var(--serif); font-style: italic; font-size: .85rem; margin-right: .3rem; }
