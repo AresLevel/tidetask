@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pomodoro</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=3">
+<link rel="stylesheet" href="agenda.css?v=4">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -75,24 +75,40 @@
   .btn-sec.on { background: var(--acento); color: var(--acento-texto); }
   .btn-sec svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-  .info { display: flex; flex-direction: column; align-items: center; gap: .5rem; min-height: 3rem; }
+  .info { display: flex; flex-direction: column; align-items: center; gap: .5rem; min-height: 1.5rem; }
   .ciclo { font-size: .8rem; color: var(--texto-suave); letter-spacing: .08em; }
-  .tarea-activa {
-    max-width: min(80vw, 28rem); font-size: .95rem; color: var(--texto); background: none; border: 0; cursor: pointer;
-    padding: .3rem .9rem; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    border-bottom: 1px dashed var(--sutil);
+
+
+  /* ---- Dos vistas: Hoy (tareas) y Enfoque (reloj) ---- */
+  .vista { display: flex; flex-direction: column; align-items: center; gap: 2rem; animation: entrar .45s ease both; }
+  @keyframes entrar { from { opacity: 0; transform: translateY(12px); } }
+  body[data-vista="hoy"] .v-enfoque, body[data-vista="enfoque"] .v-hoy { display: none; }
+  body[data-vista="hoy"] .solo-enfoque, body[data-vista="enfoque"] .solo-hoy { display: none; }
+  body[data-vista="hoy"] .volver { display: none; }
+  .v-hoy { gap: 1rem; }
+  .foco { display: flex; align-items: center; justify-content: center; gap: .8rem; min-height: 2.4rem; margin-bottom: -.6rem; }
+  .foco-titulo { max-width: min(80vw, 30rem); font-size: 1.2rem; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hecha-btn { font: inherit; font-size: .78rem; padding: .4rem .9rem; border-radius: 999px; cursor: pointer; background: var(--vidrio); border: 1px solid var(--borde); backdrop-filter: blur(14px); transition: background .2s, color .2s; }
+  .hecha-btn:hover { background: var(--acento); color: var(--acento-texto); }
+  .hecha-btn[hidden] { display: none; }
+  .volver {
+    position: fixed; top: 1.4rem; left: 1.4rem; display: inline-flex; align-items: center; gap: .3rem; height: 2.9rem; padding: 0 1.1rem .0 .8rem;
+    font-size: .85rem; cursor: pointer; background: var(--vidrio); border: 1px solid var(--borde); border-radius: 999px; backdrop-filter: blur(14px); transition: background .2s, opacity .4s;
   }
-  .tarea-activa.vacia { color: var(--texto-suave); }
-  .tarea-activa:hover { background: var(--vidrio); }
-  .tarea-input {
-    width: min(86vw, 22rem); font: inherit; font-size: .95rem; text-align: center; color: var(--texto);
-    padding: .55rem 1.1rem; border-radius: 999px; outline: none;
-    background: var(--vidrio); border: 1px solid var(--borde); backdrop-filter: blur(14px);
-    transition: border-color .2s;
+  .volver:hover { background: color-mix(in srgb, var(--vidrio) 60%, var(--acento)); }
+  .volver svg { width: 1.1rem; height: 1.1rem; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .pildora {
+    display: inline-flex; align-items: center; gap: .6rem; max-width: min(92vw, 36rem); padding: .55rem 1.1rem; border-radius: 999px; cursor: pointer;
+    font: inherit; font-size: .85rem; color: var(--texto); background: var(--vidrio); border: 1px solid var(--borde); backdrop-filter: blur(14px);
+    transition: background .2s;
   }
-  .tarea-input::placeholder { color: var(--texto-suave); }
-  .tarea-input:focus { border-color: var(--acento-texto); }
-  .info [hidden] { display: none; }
+  .pildora:hover { background: color-mix(in srgb, var(--vidrio) 60%, var(--acento)); }
+  .pildora[hidden] { display: none; }
+  .pildora span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pildora .punto { width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--texto-suave); }
+  .pildora.viva .punto { background: var(--acento-texto); animation: latido 1.8s ease-in-out infinite; }
+  @keyframes latido { 50% { transform: scale(1.5); opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .vista, .pildora.viva .punto { animation: none; } }
 
   /* ---- Barra superior derecha ---- */
   .barra { position: fixed; top: 1.4rem; right: 1.4rem; display: flex; gap: .6rem; transition: opacity .4s; }
@@ -222,56 +238,63 @@
   .toast.ver { opacity: 1; transform: translate(-50%, 0); }
 
   /* ---- Modo zen ---- */
-  body.zen .selector, body.zen .modos, body.zen .btn-sec, body.zen .info, body.zen .barra { opacity: 0; transition: opacity 1s; }
+  body.zen .selector, body.zen .modos, body.zen .btn-sec, body.zen .info, body.zen .barra, body.zen .volver, body.zen .hecha-btn { opacity: 0; transition: opacity 1s; }
   body.zen .panel { opacity: 0; pointer-events: none; }
   body.zen { cursor: none; }
 </style>
 </head>
-<body>
+<body data-vista="hoy">
 
 <div class="fondo" id="f1"></div>
 <div class="fondo" id="f2"></div>
 <div class="velo"></div>
 
 <main>
-  <div class="modos" id="modos">
-    <button data-modo="enfoque" class="on">Enfoque</button>
-    <button data-modo="corto">Descanso</button>
-    <button data-modo="largo">Descanso largo</button>
-  </div>
+  <!-- Vista Hoy: las tareas son lo primero -->
+  <section class="vista v-hoy" id="vistaHoy">
+    <button class="pildora" id="pildora" hidden><span class="punto"></span><span id="pildoraTxt"></span></button>
+    <aside class="hoy" id="hoy" aria-label="Tareas de hoy"></aside>
+  </section>
 
-  <div class="reloj" id="reloj">25:00</div>
+  <!-- Vista Enfoque: el reloj aparece cuando eliges enfocarte -->
+  <section class="vista v-enfoque" id="vistaEnfoque">
+    <div class="modos" id="modos">
+      <button data-modo="enfoque" class="on">Enfoque</button>
+      <button data-modo="corto">Descanso</button>
+      <button data-modo="largo">Descanso largo</button>
+    </div>
 
-  <div class="controles">
-    <button class="btn-sec" id="reiniciar" data-tip="Reiniciar (R)" aria-label="Reiniciar">
-      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-    </button>
-    <button class="btn-main" id="iniciar">Iniciar</button>
-    <button class="btn-sec" id="saltar" data-tip="Saltar (S)" aria-label="Saltar">
-      <svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7z"/><path d="M19 5v14"/></svg>
-    </button>
-  </div>
+    <div class="foco" id="foco">
+      <span class="foco-titulo" id="focoTitulo">Enfoque libre</span>
+      <button class="hecha-btn" id="hecha" hidden>Marcar hecha</button>
+    </div>
 
-  <div class="info">
-    <div class="ciclo" id="ciclo"></div>
-    <button class="tarea-activa" id="tareaActiva" hidden></button>
-    <input class="tarea-input" id="enfoqueInput" type="text" placeholder="¿En qué vas a enfocarte?" autocomplete="off" maxlength="120" aria-label="¿En qué vas a enfocarte?">
-  </div>
-  <div class="cierre" id="cierre" role="status" hidden></div>
+    <div class="reloj" id="reloj">25:00</div>
+
+    <div class="controles">
+      <button class="btn-sec" id="reiniciar" data-tip="Reiniciar (R)" aria-label="Reiniciar">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+      <button class="btn-main" id="iniciar">Iniciar</button>
+      <button class="btn-sec" id="saltar" data-tip="Saltar (S)" aria-label="Saltar">
+        <svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7z"/><path d="M19 5v14"/></svg>
+      </button>
+    </div>
+
+    <div class="info"><div class="ciclo" id="ciclo"></div></div>
+  </section>
 </main>
 
-<aside class="hoy" id="hoy" aria-label="Tareas de hoy"></aside>
+<button class="volver" id="volver" aria-label="Volver a Hoy"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Hoy</button>
+<div class="cierre" id="cierre" role="status" hidden></div>
 
 <nav class="selector" id="selector" aria-label="Fondos"></nav>
 
 <div class="barra" id="barra">
-  <button class="btn-sec" id="agendaBtn" data-tip="Agenda" aria-label="Agenda">
-    <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>
-  </button>
-  <button class="btn-sec" data-panel="stats" data-tip="Estadísticas" aria-label="Estadísticas">
+  <button class="btn-sec solo-hoy" data-panel="stats" data-tip="Estadísticas" aria-label="Estadísticas">
     <svg viewBox="0 0 24 24"><path d="M5 20v-7M11 20V5M17 20v-10"/><path d="M3 20h18"/></svg>
   </button>
-  <button class="btn-sec" data-panel="musica" data-tip="Música" aria-label="Música">
+  <button class="btn-sec solo-enfoque" data-panel="musica" data-tip="Música" aria-label="Música">
     <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
   </button>
   <button class="btn-sec" data-panel="ajustes" data-tip="Ajustes" aria-label="Ajustes">
@@ -283,7 +306,7 @@
 </div>
 
 <!-- Estadísticas -->
-<aside class="panel" id="stats">
+<aside class="panel solo-hoy" id="stats">
   <h2>Tu progreso</h2>
   <div class="grande">
     <div><b id="sHoy">0</b><span>pomodoros hoy</span></div>
@@ -294,7 +317,7 @@
 </aside>
 
 <!-- Música -->
-<aside class="panel" id="musica">
+<aside class="panel solo-enfoque" id="musica">
   <h2>Música</h2>
 
   <!-- Sin vincular: reproductor incrustado -->
@@ -349,8 +372,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=3"></script>
-<script src="agenda.js?v=3"></script>
+<script src="nube.js?v=4"></script>
+<script src="agenda.js?v=4"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -533,8 +556,7 @@
   spInput.addEventListener('keydown', e => { if (e.key === 'Enter') spCargar(); });
 
   // ============ Agenda (tareas): ver agenda.js ============
-  $('agendaBtn').onclick = () => { cerrarPaneles(); Agenda.abrir(); };
-  $('tareaActiva').onclick = () => Agenda.abrir();
+  // El botón «Agenda» vive dentro de la lista de Hoy (agenda.js)
 
   // ============ Estadísticas ============
   function registrarPomodoro() {
@@ -584,8 +606,43 @@
     reloj.textContent = txt;
     document.title = (corriendo ? txt + ' · ' : '') + (modo === 'enfoque' ? 'Enfoque' : 'Descanso');
     $('ciclo').textContent = `Pomodoro ${pomodoro} de ${cfg.ciclos} · hoy ${pomosHoy()}`;
+    $('hecha').hidden = !(modo === 'enfoque' && Agenda.activaTitulo());
+    pintarPildora(txt);
     pintarIcono();
   }
+
+  // ============ Vistas: Hoy (tareas) y Enfoque (reloj) ============
+  let vista = 'hoy';
+  const enProgreso = () => corriendo || restante !== dur(modo);
+  function irA(v) {
+    vista = v; document.body.dataset.vista = v;
+    document.body.classList.remove('zen'); cerrarPaneles();
+    pintarPildora();
+  }
+  // Mientras no estás en el reloj, una píldora recuerda que hay un enfoque (o un descanso) esperándote
+  function pintarPildora(txt) {
+    const p = $('pildora'), ver = vista === 'hoy' && (enProgreso() || modo !== 'enfoque');
+    p.hidden = !ver; if (!ver) return;
+    if (!txt) { const s = Math.ceil(restante / 1000); txt = pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+    const t = Agenda.activaTitulo(), esEnfoque = modo === 'enfoque';
+    p.classList.toggle('viva', corriendo);
+    $('pildoraTxt').textContent = `${esEnfoque ? 'Enfoque' : 'Descanso'} ${corriendo ? 'en curso' : enProgreso() ? 'en pausa' : 'listo'} · ${txt}` + (esEnfoque && t ? ` · ${t}` : '');
+  }
+  function mostrarTitulo() { $('focoTitulo').textContent = Agenda.activaTitulo() || 'Enfoque libre'; }
+  /** Arranca un enfoque sobre una tarea; con id null es un enfoque libre, sin tarea. */
+  function empezarEnfoque(id) {
+    const mismaEnCurso = id !== null && id === Agenda.activaId() && modo === 'enfoque' && enProgreso();
+    Agenda.fijarActiva(id);
+    if (!mismaEnCurso) cambiarModo('enfoque');     // otra tarea o un descanso: se parte de un reloj nuevo
+    mostrarTitulo(); irA('enfoque');
+    if (!corriendo) alternar();
+  }
+  $('pildora').onclick = () => irA('enfoque');
+  $('volver').onclick = () => irA('hoy');
+  $('hecha').onclick = () => {      // terminar la tarea a mitad de un enfoque lo da por cerrado
+    Agenda.completarActiva(); ocultarCierre();
+    cambiarModo('enfoque'); irA('hoy');
+  };
   function cambiarModo(m) {
     musica(false); ambiente(false);
     modo = m; corriendo = false; fin = null; restante = dur(m);
@@ -625,6 +682,8 @@
     if (natural && !ausente && (sig === 'enfoque' ? cfg.autoEnfoque : cfg.autoDescanso)) alternar();
     // Al cerrar un pomodoro con una tarea de por medio, se pregunta si ya quedó lista
     if (natural && eraEnfoque && Agenda.activaTitulo()) mostrarCierre();
+    // Un descanso que termina (o se salta) devuelve a la lista, salvo que el enfoque siguiente arranque solo
+    if (!eraEnfoque && !corriendo) irA('hoy');
   }
   let temporizadorCierre = 0;
   function ocultarCierre() { clearTimeout(temporizadorCierre); $('cierre').hidden = true; }
@@ -656,7 +715,7 @@
   }
   function cerrarPaneles() { document.querySelectorAll('.panel').forEach(o => o.classList.remove('abierto')); document.querySelectorAll('[data-panel]').forEach(b => b.classList.remove('on')); }
   document.querySelectorAll('[data-panel]').forEach(b => b.onclick = () => abrirPanel(b.dataset.panel));
-  document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra, .tarea-activa')) cerrarPaneles(); });
+  document.addEventListener('click', e => { if (!e.target.closest('.panel, .barra')) cerrarPaneles(); });
 
   // ============ Ajustes ============
   function pintarAjustes() {
@@ -702,17 +761,18 @@
     if (document.body.classList.contains('agenda-abierta')) return;   // la agenda maneja su propio teclado
     if (e.target.closest('input, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Escape') { if (document.querySelector('.panel.abierto')) cerrarPaneles(); else if (vista === 'enfoque') irA('hoy'); return; }
+    if (e.key === 'f' || e.key === 'F') { pantallaCompleta(); return; }
+    if (vista !== 'enfoque') return;
     if (e.code === 'Space') { e.preventDefault(); alternar(); }
     else if (e.key === 'r' || e.key === 'R') cambiarModo(modo);
     else if (e.key === 's' || e.key === 'S') terminar(false);
-    else if (e.key === 'f' || e.key === 'F') pantallaCompleta();
-    else if (e.key === 'Escape') cerrarPaneles();
   });
   let idle;
   addEventListener('mousemove', () => {
     document.body.classList.remove('zen');
     clearTimeout(idle);
-    if (corriendo) idle = setTimeout(() => { if (!document.body.classList.contains('agenda-abierta')) document.body.classList.add('zen'); }, 4000);
+    if (corriendo && vista === 'enfoque') idle = setTimeout(() => { if (!document.body.classList.contains('agenda-abierta')) document.body.classList.add('zen'); }, 4000);
   });
 
   // ============ Arranque: recupera la sesión si se cerró o recargó la página ============
@@ -728,20 +788,13 @@
     } else if (restante !== dur(modo)) btnIniciar.textContent = 'Continuar';
   }
   const f0 = fondoParaModo(); if (f0 !== fondoActual.id) ponerFondo(f0, false);
-  // Con tarea activa se muestra su nombre; sin ella, un campo para escribir en qué te enfocas
-  Agenda.iniciar({ alCambiarActiva: txt => {
-    const b = $('tareaActiva'), i = $('enfoqueInput');
-    b.textContent = txt; b.hidden = !txt; i.hidden = !!txt;
-    ocultarCierre();
-  } });
-  $('enfoqueInput').addEventListener('keydown', e => {
-    if (e.key !== 'Enter' || !e.target.value.trim()) return;
-    Agenda.crearRapida(e.target.value); e.target.value = '';
-  });
+  Agenda.iniciar({ alCambiarActiva: () => { ocultarCierre(); mostrarTitulo(); pintarPildora(); } });
+  mostrarTitulo();
+  // Al abrir: un enfoque a medias devuelve al reloj; si no, se empieza por la lista de Hoy
+  irA(enProgreso() ? 'enfoque' : 'hoy');
   pintarAjustes(); pintar();
-  if (terminoFuera) { terminar(true, true); aviso('El tiempo terminó mientras no estabas.'); }
+  if (terminoFuera) { terminar(true, true); irA('hoy'); aviso('El tiempo terminó mientras no estabas.'); }
   else if (corriendo) aviso('Sesión recuperada. El tiempo sigue corriendo.');
-  // Al abrir siempre se ve el timer; las tareas de hoy están en la tarjeta de la izquierda y la agenda completa, a un toque
 </script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>

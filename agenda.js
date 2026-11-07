@@ -205,40 +205,53 @@
   const lista = id => E.listas.find(l => l.id === id) || E.listas[0];
   function guardar() { guardarLocal(); programarSync(); refrescarHoy(); }
 
-  // ---------------------------------------------------------------- tarjeta «Hoy» junto al timer
-  let hoyAbierto = (() => { const v = localStorage.getItem('agenda.hoy'); return v === null ? innerWidth >= 1100 : v === '1'; })();
-  function alternarHoy() { hoyAbierto = !hoyAbierto; localStorage.setItem('agenda.hoy', hoyAbierto ? '1' : '0'); refrescarHoy(); }
+  // ---------------------------------------------------------------- inicio: la lista de hoy
   function agregarHoy(texto) {
     const p = L.parsear(texto); if (!p.titulo) return;
-    const t = crear({ titulo: p.titulo, prio: p.prio, etiquetas: p.etiquetas, fecha: p.fecha || L.hoy() });
-    if (!activa) fijarActiva(t.id);
+    crear({ titulo: p.titulo, prio: p.prio, etiquetas: p.etiquetas, fecha: p.fecha || L.hoy() });
   }
+  const textoFecha = () => { const s = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()); return s.charAt(0).toUpperCase() + s.slice(1); };
   function refrescarHoy() {
     const c = refs.hoy; if (!c) return;
-    const hoy = L.hoy(), xs = L.filtrar(E, { tipo: 'hoy' }, hoy, '', false), MAX = 6;
+    const hoy = L.hoy(), xs = L.filtrar(E, { tipo: 'hoy' }, hoy, '', false);
+    const normales = xs.filter(t => !t.rep), rutinas = xs.filter(t => t.rep);
+    const hechasHoy = E.tareas.filter(t => (t.hecha && t.hechaEn && L.hoy(new Date(t.hechaEn)) === hoy) || (t.rep && t.ultima === hoy)).length;
     const a = document.activeElement, tecleando = !!(a && c.contains(a) && a.classList.contains('hy-nueva')), valor = tecleando ? a.value : '';
-    const alternarActiva = id => fijarActiva(activa === id ? null : id);
-    const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: 'Añadir a hoy…', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
+    const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: 'Añadir una tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
       onkeydown: e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { const v = e.target.value; e.target.value = ''; agregarHoy(v); } } });
     entrada.value = valor;
-    const filas = xs.slice(0, MAX).map(t => h('div', { class: 'hy-fila' + (activa === t.id ? ' activa' : '') + (t.fecha < hoy ? ' vencida' : ''), role: 'button', tabIndex: 0, 'aria-pressed': String(activa === t.id),
-        onclick: () => alternarActiva(t.id),
-        onkeydown: e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); alternarActiva(t.id); } } },
-      h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Completar ' + (t.titulo || 'tarea'), onclick: e => { e.stopPropagation(); alternarHecha(t.id); } }),
-      h('span', { class: 'hy-t' }, t.titulo || '(sin título)'),
-      (t.est > 0 || t.pomos > 0) && h('span', { class: 'hy-p' }, `${t.pomos}${t.est ? '/' + t.est : ''}`)));
+    const fila = t => {
+      const metas = [
+        t.fecha < hoy && h('span', { class: 'hy-meta vencida' }, L.etiquetaFecha(t.fecha, hoy)),
+        t.rep && h('span', { class: 'hy-meta' }, ico('repetir')),
+        t.subs.length > 0 && h('span', { class: 'hy-meta' }, `${t.subs.filter(x => x.hecha).length}/${t.subs.length} pasos`),
+        (t.pomos > 0 || t.est > 0) && h('span', { class: 'hy-meta' }, `${t.pomos}${t.est ? ' de ' + t.est : ''} pomodoros`),
+        ...t.etiquetas.map(x => h('span', { class: 'hy-meta' }, '#' + x)),
+      ].filter(Boolean);
+      return h('div', { class: 'hy-fila' + (activa === t.id ? ' activa' : ''), role: 'button', tabIndex: 0, onclick: () => Agenda.abrirTarea(t.id),
+          onkeydown: e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); Agenda.abrirTarea(t.id); } } },
+        h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Completar ' + (t.titulo || 'tarea'), onclick: e => { e.stopPropagation(); alternarHecha(t.id); } }),
+        h('div', { class: 'hy-cuerpo' }, h('div', { class: 'hy-t' }, t.titulo || '(sin título)'), metas.length > 0 && h('div', { class: 'hy-metas' }, metas)),
+        h('button', { class: 'hy-play', 'aria-label': 'Enfocar en ' + (t.titulo || 'esta tarea'), onclick: e => { e.stopPropagation(); enfocar(t.id); } }, ico('play')));
+    };
     c.textContent = '';
-    c.classList.toggle('plegado', !hoyAbierto);
     c.append(
-      h('div', { class: 'hy-cab' },
-        h('button', { class: 'hy-tit', 'aria-expanded': String(hoyAbierto), onclick: alternarHoy }, 'Hoy', xs.length > 0 && h('em', null, xs.length)),
+      h('header', { class: 'hy-cab' },
+        h('div', null, h('h1', { class: 'hy-h' }, 'Hoy'), h('p', { class: 'hy-fecha' }, textoFecha() + (xs.length ? ` · ${xs.length} ${xs.length === 1 ? 'pendiente' : 'pendientes'}` : ''))),
         h('button', { class: 'hy-ver', onclick: () => Agenda.abrirHoy() }, 'Agenda')),
-      h('div', { class: 'hy-cuerpo' },
-        filas.length ? h('div', { class: 'hy-lista' }, filas) : h('p', { class: 'hy-vacio' }, 'Nada para hoy. Escribe abajo en qué vas a enfocarte.'),
-        xs.length > MAX && h('button', { class: 'hy-mas', onclick: () => Agenda.abrirHoy() }, `Ver las ${xs.length - MAX} restantes`),
-        entrada));
+      h('div', { class: 'hy-caja' }, h('span', { class: 'hy-mas' }, ico('mas')), entrada),
+      h('div', { class: 'hy-lista' },
+        xs.length === 0 && h('p', { class: 'hy-vacio' }, 'Nada pendiente para hoy. Escribe arriba lo que quieras hacer, o empieza un enfoque libre.'),
+        normales.map(fila),
+        rutinas.length > 0 && h('div', { class: 'hy-grupo' }, 'Rutinas'),
+        rutinas.map(fila)),
+      h('footer', { class: 'hy-pie' },
+        hechasHoy > 0 && h('span', { class: 'hy-hechas' }, `${hechasHoy} ${hechasHoy === 1 ? 'hecha' : 'hechas'} hoy`),
+        h('span', { style: 'flex:1' }),
+        h('button', { class: 'hy-libre', onclick: () => enfocar(null) }, ico('play'), 'Enfoque libre')));
     if (tecleando) entrada.focus();
   }
+
   function editar(id, cambios, refrescar = 'lista') {
     const t = tarea(id); if (!t) return;
     Object.assign(t, cambios, { t: Date.now() });
@@ -268,9 +281,10 @@
     if (refs.centro) listaUI();
     refrescarHoy();
   }
+  /** Arranca un enfoque sobre la tarea (o libre si id es null). La pantalla del timer la define la página. */
   function enfocar(id) {
-    fijarActiva(id); cerrar();
-    if (typeof corriendo !== 'undefined' && !corriendo) { if (modo !== 'enfoque') cambiarModo('enfoque'); alternar(); }
+    cerrar();
+    if (typeof g.empezarEnfoque === 'function') g.empezarEnfoque(id); else fijarActiva(id);
   }
 
   // ---------------------------------------------------------------- sincronización
@@ -487,7 +501,7 @@
       h('div', { class: 'ag-campo' }, h('label', null, 'Pomodoros'),
         h('div', { class: 'ag-paso' }, h('button', { 'aria-label': 'Menos', onclick: () => editar(t.id, { est: Math.max(0, t.est - 1) }, 'todo') }, '−'),
           h('output', null, t.est ? `${t.pomos} de ${t.est}` : `${t.pomos} hechos`), h('button', { 'aria-label': 'Más', onclick: () => editar(t.id, { est: Math.min(30, t.est + 1) }, 'todo') }, '+'),
-          h('span', { class: 'ag-nota' }, 'estimados'))),
+          h('span', { class: 'ag-nota' }, 'meta, opcional'))),
       h('div', { class: 'ag-campo' }, h('label', null, 'Etiquetas'),
         t.etiquetas.length > 0 && h('div', { class: 'ag-chips' }, t.etiquetas.map(x => h('button', { class: 'ag-chip on', 'aria-label': 'Quitar etiqueta ' + x, onclick: () => editar(t.id, { etiquetas: t.etiquetas.filter(y => y !== x) }, 'todo') }, '#' + x, ico('cerrar', 'chico')))), etqInput),
       h('div', { class: 'ag-campo' }, h('label', null, 'Pasos'), subs),
@@ -560,17 +574,11 @@
       sincronizar(false);
     },
     abrir, cerrar, abierta: () => abierta,
-    /** ¿Hay tareas pendientes para hoy (o atrasadas)? */
-    hayHoy() { return L.conteos(E).hoy > 0; },
+    /** Abre la agenda con el detalle de una tarea. */
+    abrirTarea(id) { ui.vista = { tipo: 'hoy' }; ui.q = ''; ui.sel = id; if (refs.buscar) refs.buscar.value = ''; abrir(); },
+    fijarActiva, activaId: () => activa,
     /** Abre la agenda directamente en «Hoy». */
     abrirHoy() { ui.vista = { tipo: 'hoy' }; ui.q = ''; ui.sel = null; if (refs.buscar) refs.buscar.value = ''; abrir(); },
-    /** Crea una tarea desde el campo «¿En qué vas a enfocarte?» y la deja como activa, sin abrir la agenda. */
-    crearRapida(texto) {
-      const p = L.parsear(texto);
-      if (!p.titulo) return;
-      const t = crear({ titulo: p.titulo, prio: p.prio, etiquetas: p.etiquetas, fecha: p.fecha || L.hoy() });
-      fijarActiva(t.id);
-    },
     /** Marca como hecha la tarea activa (si es rutina, pasa a su próxima fecha) y la deja de usar como foco. */
     completarActiva() { const t = tarea(activa); if (!t || t.hecha) return; const id = t.id; alternarHecha(id); if (activa === id) fijarActiva(null); },
     activaTitulo() { const t = tarea(activa); return t && !t.hecha ? t.titulo : ''; },
