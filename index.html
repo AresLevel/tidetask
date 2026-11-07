@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=27">
+<link rel="stylesheet" href="agenda.css?v=28">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -260,6 +260,9 @@
   }
   @media (max-width: 760px) {
     :root { --tabs-h: calc(4rem + var(--sab) + var(--kb)); }
+    /* con el teclado abierto la barra inferior se esconde (queda debajo): lo demás solo sube lo justo */
+    body.teclado { --tabs-h: var(--kb); }
+    body.teclado .tabs { display: none; }
     main { padding-top: var(--sat); padding-bottom: var(--tabs-h); }
     .reloj { font-size: clamp(5.5rem, 27vw, 9rem); }
     .modos button { padding: .55rem 1rem; }
@@ -417,8 +420,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=27"></script>
-<script src="agenda.js?v=27"></script>
+<script src="nube.js?v=28"></script>
+<script src="agenda.js?v=28"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -869,7 +872,7 @@
   (function () {
     const C = window.Capacitor, n = C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.Pomodoro;
     if (!n) return;
-    const poner = i => { const r = document.documentElement.style; r.setProperty('--sat', i.top + 'px'); r.setProperty('--sab', i.bottom + 'px'); r.setProperty('--kb', (i.teclado || 0) + 'px'); };
+    const poner = i => { const r = document.documentElement.style; r.setProperty('--sat', i.top + 'px'); r.setProperty('--sab', i.bottom + 'px'); r.setProperty('--kb', (i.teclado || 0) + 'px'); document.body.classList.toggle('teclado', (i.teclado || 0) > 80); };
     n.getInsets().then(poner).catch(() => {});
     n.addListener('insets', poner);
   })();
