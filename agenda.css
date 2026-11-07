@@ -314,7 +314,7 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 
 /* ================= Teléfono ================= */
 @media (max-width: 760px) {
-  .agenda { padding: 0 0 var(--tabs-h, 4rem); }
+  .agenda { padding: var(--sat, 0px) 0 var(--tabs-h, 4rem); }
   .ag-caja, .ag-caja.con-detalle { height: 100%; }
   .hoy { max-height: calc(100dvh - var(--tabs-h, 4rem) - 7.5rem); padding: 1.2rem 1.1rem 1rem; border-radius: 1.4rem; }
   .hoy .hy-cab { align-items: flex-start; }
