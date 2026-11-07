@@ -340,3 +340,12 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
   .ag-cal-dia { min-height: 2.6rem; }
   .hy-ver, .hy-libre { min-height: 2.6rem; }
 }
+
+/* Encabezado de la lista en el teléfono: las acciones (Personalizar, Renombrar, Eliminar) pasan a su propia fila y ya no se salen */
+@media (max-width: 760px) {
+  .ag-cab { flex-wrap: wrap; row-gap: .6rem; }
+  .ag-h { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.3rem; }
+  .ag-acciones { order: 9; flex: 1 1 100%; flex-wrap: wrap; gap: .5rem; }
+  .ag-acciones .ag-input { flex: 1 1 100%; min-width: 0; }
+  .ag-acciones .ag-chip { flex: 0 1 auto; }
+}
