@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=31">
+<link rel="stylesheet" href="agenda.css?v=32">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -37,6 +37,9 @@
   html, body { height: 100%; overflow: hidden; }
   body { font-family: Inter, "Segoe UI", system-ui, sans-serif; color: var(--texto); background: #111; }
   button { font: inherit; color: inherit; }
+  /* el texto de la interfaz no se selecciona (solo lo que se escribe): evita selecciones al mantener pulsado o arrastrar */
+  body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 
   /* ---- Fondos: dos capas para fundido cruzado ---- */
   .fondo {
@@ -420,8 +423,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=31"></script>
-<script src="agenda.js?v=31"></script>
+<script src="nube.js?v=32"></script>
+<script src="agenda.js?v=32"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
