@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pomodoro</title>
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="agenda.css?v=4">
+<link rel="stylesheet" href="agenda.css?v=5">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -106,7 +106,7 @@
   .pildora[hidden] { display: none; }
   .pildora span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .pildora .punto { width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--texto-suave); }
-  .pildora.viva .punto { background: var(--acento-texto); animation: latido 1.8s ease-in-out infinite; }
+  .pildora.viva .punto { background: var(--texto); animation: latido 1.8s ease-in-out infinite; }
   @keyframes latido { 50% { transform: scale(1.5); opacity: .45; } }
   @media (prefers-reduced-motion: reduce) { .vista, .pildora.viva .punto { animation: none; } }
 
@@ -372,8 +372,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=4"></script>
-<script src="agenda.js?v=4"></script>
+<script src="nube.js?v=5"></script>
+<script src="agenda.js?v=5"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
