@@ -425,3 +425,6 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 
 /* con el teclado abierto (teléfono) no sube «Mostrar completadas» ni el pie de la lista */
 body.teclado .ag-pie { display: none; }
+
+/* en el teléfono la barra inferior ya tiene «Agenda»: el botón de arriba en Hoy sobra */
+@media (max-width: 760px) { .hy-ver { display: none; } }
