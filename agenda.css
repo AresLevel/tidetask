@@ -8,7 +8,7 @@ body[data-tono="oscuro"] { --ag-bg: rgba(255,255,255,.8); --vencida: #c23a22; }
   opacity: 0; pointer-events: none; transition: opacity .25s;
 }
 .agenda.abierto { opacity: 1; pointer-events: auto; }
-.agenda button, .agenda input, .agenda textarea { font: inherit; color: inherit; }
+:where(.agenda) :is(button, input, textarea) { font: inherit; color: inherit; }
 .agenda svg.ag-ico { width: 1.05rem; height: 1.05rem; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .agenda svg.ag-ico.chico { width: .7rem; height: .7rem; }
 .agenda [data-tip] { position: relative; }

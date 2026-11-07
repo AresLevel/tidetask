@@ -373,7 +373,7 @@
       onclick: () => { ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.sidebar = false; todo(); } },
       extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n));
     c.textContent = '';
-    c.append(
+    c.append(...[
       h('div', { class: 'ag-seccion' }, item('hoy', 'Hoy', 'hoy', cu.hoy), item('proximas', 'Próximas', 'prox', cu.proximas), item('todas', 'Todas', 'todas', cu.todas),
         item('rutinas', 'Rutinas', 'rutinas', cu.rutinas), item('hechas', 'Completadas', 'hechas', 0)),
       h('div', { class: 'ag-seccion' },
@@ -385,7 +385,7 @@
             if (n) { const l = { id: 'l' + Date.now().toString(36), nombre: n, color: COLORES[E.listas.length % COLORES.length], t: Date.now() }; E.listas.push(l); guardar(); ui.vista = { tipo: 'lista', id: l.id }; todo(); } else lado(); } })),
       Object.keys(cu.etiquetas).length > 0 && h('div', { class: 'ag-seccion' }, h('div', { class: 'ag-sec-tit' }, 'Etiquetas'),
         Object.keys(cu.etiquetas).sort().map(x => item('etiqueta', '#' + x, null, cu.etiquetas[x], { nombre: x, color: 'transparent' }))),
-      nubeUI());
+      nubeUI()].filter(Boolean));
     if (ui.nuevaLista) setTimeout(() => { const i = document.getElementById('agNuevaLista'); if (i) i.focus(); }, 0);
   }
   function hace(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'ahora mismo' : m < 60 ? `hace ${m} min` : `hace ${Math.round(m / 60)} h`; }
