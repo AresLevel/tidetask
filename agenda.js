@@ -829,6 +829,12 @@
   }
 
   // ---------------------------------------------------------------- historial: lo que se hizo, día por día
+  /** Borra todo el registro de actividad (tareas hechas y pomodoros); las tareas y listas no se tocan. */
+  function borrarHistorial() {
+    const ahora = Date.now();
+    E.registro.forEach(r => { E.borrados[r.id] = ahora; }); E.registro = [];
+    guardar(); todo();
+  }
   function historialUI() {
     const c = refs.lista, hoy = L.hoy();
     refs.titulo.textContent = 'Historial'; refs.cuenta.textContent = ''; refs.pie.textContent = ''; refs.acciones.textContent = ''; c.textContent = '';
@@ -839,6 +845,7 @@
       h('div', { class: 'ag-barras' }, sem.map(d => h('div', { class: 'ag-col' + (d.dia === hoy ? ' ya' : '') },
         h('span', { class: 'n' }, d.pomodoros || ''), h('div', { class: 'b', style: `height:${Math.max(4, d.pomodoros / max * 100)}%` }), h('span', { class: 'l' }, 'DLMXJVS'[L.dow(d.dia)])))));
     const dias = L.historial(E, 30);
+    if (E.registro.length) c.append(h('div', { class: 'ag-acciones-hist' }, confirmable('Borrar historial', '¿Seguro? No se puede deshacer', borrarHistorial)));
     if (!dias.length) { c.append(h('div', { class: 'ag-vacio' }, 'Aún no hay actividad. Cuando completes tareas o termines pomodoros, aparecerán aquí día por día.')); return; }
     const abrir = id => { if (tarea(id)) seleccionar(id); };
     for (const d of dias) {
@@ -951,7 +958,7 @@
         onblur: () => { const n = inp.value.trim(); if (n && n !== g.nombre) { g.nombre = n; g.t = Date.now(); guardar(); } ui.renombrarGrupo = null; lado(); listaUI(); } });
       if (ui.enfocarGrupo) { ui.enfocarGrupo = false; setTimeout(() => { inp.focus(); inp.select(); }, 60); }
       else setTimeout(() => { inp.focus(); inp.select(); }, 0);
-      return h('div', { class: 'ag-grupo' }, h('div', { class: 'ag-grupo-ren' }, ico('carpeta'), inp));
+      return h('div', { class: 'ag-carp' }, h('div', { class: 'ag-grupo-ren' }, ico('carpeta'), inp));
     }
     const cabecera = cab = h('button', { class: 'ag-nav ag-grupo-cab', dataset: { gid: g.id }, 'aria-expanded': String(!cerrado),
       onpointerdown: e => { largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
@@ -974,7 +981,7 @@
       oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuGrupo(g, e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
       onclick: () => { if (largo) return; if (cerrados.has(g.id)) cerrados.delete(g.id); else cerrados.add(g.id); guardarCerrados(); lado(); } },
       h('span', { class: 'ag-chev' }, ico('chev')), h('span', { class: 'ag-ni' }, ico('carpeta')), h('span', { class: 'ag-nav-t' }, g.nombre), total > 0 && h('em', null, total));
-    return h('div', { class: 'ag-grupo' + (cerrado ? ' cerrado' : '') }, cabecera,
+    return h('div', { class: 'ag-carp' + (cerrado ? ' cerrado' : '') }, cabecera,
       !cerrado && h('div', { class: 'ag-grupo-lista' },
         mias.map(l => item('lista', l.nombre, null, cu.listas[l.id] || 0, { id: l.id, color: l.color, icono: l.icono })),
         mias.length === 0 && h('div', { class: 'ag-grupo-vacio' }, 'Arrastra listas aquí')));

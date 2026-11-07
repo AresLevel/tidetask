@@ -408,7 +408,7 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 
 /* ---- Grupos de listas ---- */
 .ag-sec-bot { display: inline-flex; gap: .1rem; }
-.ag-grupo { display: flex; flex-direction: column; gap: .15rem; }
+.ag-carp { display: flex; flex-direction: column; gap: .15rem; }
 .ag-grupo-cab .ag-chev { display: inline-grid; place-items: center; width: .9rem; flex: none; opacity: .6; transition: transform .2s; }
 .ag-grupo-cab .ag-chev svg.ag-ico { width: .9rem; height: .9rem; }
 .ag-grupo-cab[aria-expanded="true"] .ag-chev { transform: rotate(90deg); }
@@ -428,3 +428,4 @@ body.teclado .ag-pie { display: none; }
 
 /* en el teléfono la barra inferior ya tiene «Agenda»: el botón de arriba en Hoy sobra */
 @media (max-width: 760px) { .hy-ver { display: none; } }
+.ag-acciones-hist { display: flex; justify-content: flex-end; padding: .2rem .2rem .6rem; }
