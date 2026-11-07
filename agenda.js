@@ -651,13 +651,13 @@
     const ahora = Date.now();
     E.tareas.filter(t => t.lista === l.id).forEach(t => { t.lista = 'inbox'; t.t = ahora; });
     E.listas = E.listas.filter(x => x.id !== l.id); E.borrados[l.id] = ahora;
-    ui.vista = { tipo: 'todas' }; ui.personalizar = false; guardar(); todo();
+    ui.vista = { tipo: 'todas' }; ui.personalizar = false; refs.caja.classList.add('en-menu'); guardar(); todo();
   }
 
   // ---- menú de una lista: se abre manteniéndola pulsada (o con clic derecho)
   function irALista(l) {
     ui.vista = { tipo: 'lista', id: l.id }; ui.q = ''; if (refs.buscar) refs.buscar.value = '';
-    ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado');
+    ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('en-menu');
   }
   const cerrarMenuCtx = () => { const m = document.getElementById('agMenuCtx'); if (m) m.remove(); };
   function menuLista(l, x, y) {
@@ -828,7 +828,7 @@
         oncontextmenu: e => { e.preventDefault(); if (!alzada && !document.getElementById('agMenuCtx')) { largo = true; menuLista(lista(extra.id), e.clientX, e.clientY); setTimeout(() => { largo = false; }, 120); } },
       };
       return h('button', { class: 'ag-nav' + (!ui.q && v.tipo === tipo && (extra.id ? v.id === extra.id : extra.nombre ? v.nombre === extra.nombre : true) ? ' on' : ''), ...pulsacion,
-      onclick: () => { if (largo) return; ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('ver-lado'); todo(); } },
+      onclick: () => { if (largo) return; ui.vista = { tipo, ...extra }; ui.q = ''; refs.buscar.value = ''; ui.verHechas = false; ui.renombrar = false; ui.personalizar = false; ui.sidebar = false; refs.caja.classList.remove('en-menu'); todo(); } },
       extra.icono && ICO['i_' + extra.icono] ? h('span', { class: 'ag-ni', style: `color:${extra.color}` }, ico('i_' + extra.icono)) : extra.color ? h('i', { class: 'ag-punto grande', style: `background:${extra.color}` }) : ico(icono), h('span', { class: 'ag-nav-t' }, nombre), n > 0 && h('em', null, n)); };
     c.textContent = '';
     c.append(...[
@@ -1005,7 +1005,7 @@
 
   function construir() {
     refs.raiz = document.getElementById('agenda');
-    refs.buscar = h('input', { type: 'text', class: 'ag-input', placeholder: 'Buscar…', oninput: e => { ui.q = e.target.value; listaUI(); }, onkeydown: e => { e.stopPropagation(); if (e.key === 'Escape') { e.target.value = ''; ui.q = ''; listaUI(); } } });
+    refs.buscar = h('input', { type: 'text', class: 'ag-input', placeholder: 'Buscar…', oninput: e => { ui.q = e.target.value; if (ui.q && refs.caja) refs.caja.classList.remove('en-menu'); listaUI(); }, onkeydown: e => { e.stopPropagation(); if (e.key === 'Escape') { e.target.value = ''; ui.q = ''; listaUI(); } } });
     refs.lado = h('div', { class: 'ag-lado-cont' });
     refs.titulo = h('h2', { class: 'ag-h' }); refs.cuenta = h('span', { class: 'ag-cuenta' }); refs.acciones = h('div', { class: 'ag-acciones' });
     refs.lista = h('div', { class: 'ag-lista' }); refs.pie = h('div', { class: 'ag-pie' });
@@ -1014,20 +1014,21 @@
       if (e.key === 'Enter') { nuevaDesdeTexto(e.target.value); e.target.value = ''; }
     } });
     refs.entrada = entrada;
-    refs.centro = h('section', { class: 'ag-centro', onclick: e => { if (refs.caja.classList.contains('ver-lado') && !e.target.closest('.ag-mini.menu')) refs.caja.classList.remove('ver-lado'); } },
-      h('div', { class: 'ag-cab' }, h('button', { class: 'ag-mini menu', 'aria-label': 'Menú', onclick: () => { refs.caja.classList.toggle('ver-lado'); } }, ico('todas')), refs.titulo, refs.cuenta, h('span', { style: 'flex:1' }), refs.acciones,
+    refs.centro = h('section', { class: 'ag-centro' },
+      h('div', { class: 'ag-cab' }, h('button', { class: 'ag-mini menu', 'aria-label': 'Volver al menú', onclick: () => { ui.sel = null; refs.caja.classList.add('en-menu'); todo(); } }, ico('prev')), refs.titulo, refs.cuenta, h('span', { style: 'flex:1' }), refs.acciones,
         h('button', { class: 'ag-mini', 'aria-label': 'Cerrar agenda', onclick: cerrar }, ico('cerrar'))),
       refs.nueva = h('div', { class: 'ag-nueva' }, h('span', { class: 'ag-mas' }, ico('mas')), entrada), refs.lista, refs.pie);
     refs.detalle = h('aside', { class: 'ag-detalle' });
     refs.caja = h('div', { class: 'ag-caja', onclick: e => e.stopPropagation() },
-      h('aside', { class: 'ag-lado' }, h('div', { class: 'ag-buscar' }, ico('buscar'), refs.buscar), refs.lado), refs.centro, refs.detalle);
+      h('aside', { class: 'ag-lado' }, h('div', { class: 'ag-lado-tit' }, 'Mis tareas'), h('div', { class: 'ag-buscar' }, ico('buscar'), refs.buscar), refs.lado), refs.centro, refs.detalle);
     refs.raiz.append(refs.caja);
     refs.raiz.addEventListener('click', cerrar);
     if (g.Nube) Nube.alCambiar = () => { if (abierta) lado(); };
   }
 
-  function abrir() {
-    abierta = true; refs.caja.classList.remove('ver-lado'); refs.raiz.classList.add('abierto'); document.body.classList.add('agenda-abierta');
+  /** `destino === 'menu'`: en el teléfono se aterriza en el menú (el centro de la app); si no, directo en el espacio de trabajo. */
+  function abrir(destino) {
+    abierta = true; refs.caja.classList.toggle('en-menu', destino === 'menu'); refs.raiz.classList.add('abierto'); document.body.classList.add('agenda-abierta');
     todo(); sincronizar(false);
     if (matchMedia('(pointer: fine)').matches) setTimeout(() => refs.entrada.focus(), 200);
   }
@@ -1052,7 +1053,7 @@
       setInterval(() => sincronizar(false), 90000);
       sincronizar(false);
     },
-    abrir, cerrar, abierta: () => abierta,
+    abrir: () => abrir('menu'), cerrar, abierta: () => abierta,
     /** Abre la agenda con el detalle de una tarea. */
     abrirTarea(id) { ui.vista = { tipo: 'hoy' }; ui.q = ''; ui.sel = id; if (refs.buscar) refs.buscar.value = ''; abrir(); },
     fijarActiva, activaId: () => activa,
