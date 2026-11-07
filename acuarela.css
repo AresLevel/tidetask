@@ -8,6 +8,7 @@
 
 /* ---- Paleta por escena: papel, tinta, halo y lavado ---- */
 body {
+  --lavado-v: color-mix(in srgb, var(--lavado) calc(var(--sombra, 1) * 100%), transparent);
   --papel: #fbf3e4; --halo: rgba(255, 247, 228, .8); --lavado: rgba(255, 244, 222, .46);
   --ag-solid: var(--papel); --ag-bg: transparent; --vidrio: transparent; --borde: color-mix(in srgb, var(--texto) 26%, transparent);
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
@@ -35,8 +36,8 @@ body[data-vista="enfoque"] .agenda { display: none; }
 .ag-caja > * { position: relative; z-index: 1; }
 /* el lavado: nace del borde izquierdo y se desvanece sobre el paisaje */
 .ag-caja::before {
-  content: ''; position: absolute; z-index: 0; inset: 0 auto 0 0; width: min(66rem, 82vw); pointer-events: none;
-  background: linear-gradient(90deg, var(--lavado) 0%, var(--lavado) 52%, transparent 100%);
+  content: ''; position: absolute; z-index: 0; inset: 0 auto 0 0; width: calc(min(66rem, 82vw) * var(--ancho, 1)); pointer-events: none;
+  background: linear-gradient(90deg, var(--lavado-v) 0%, var(--lavado-v) 52%, transparent 100%);
 }
 /* la tinta: el texto se lee por su halo, no por un cristal detrás */
 .ag-lado, .ag-centro { text-shadow: 0 0 .5rem var(--halo), 0 0 1.3rem var(--halo), 0 1px 1px var(--halo); }
@@ -117,8 +118,8 @@ body[data-vista="enfoque"] .agenda { display: none; }
 @media (max-width: 760px) {
   .ag-caja, .ag-caja.con-detalle { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
   /* lavado en una lista: el paisaje se ve arriba y se asienta hacia abajo, donde están las tareas */
-  .ag-caja::before { width: auto; inset: 0; background: linear-gradient(180deg, transparent 0%, transparent 10%, var(--lavado) 34%, var(--lavado) 100%); }
-  .ag-caja.en-menu::before { background: linear-gradient(180deg, transparent 0%, transparent 30%, color-mix(in srgb, var(--lavado) 55%, transparent) 100%); }
+  .ag-caja::before { width: auto; inset: 0; background: linear-gradient(180deg, transparent 0%, transparent 10%, var(--lavado-v) 34%, var(--lavado-v) 100%); }
+  .ag-caja.en-menu::before { background: linear-gradient(180deg, transparent 0%, transparent 30%, color-mix(in srgb, var(--lavado-v) 55%, transparent) 100%); }
   .ag-lado { min-height: 0; overflow-y: auto; padding: 1.5rem 1.1rem 1.6rem; gap: 1.5rem; scrollbar-width: none; }
   .ag-lado::-webkit-scrollbar { display: none; }
   .ag-lado-tit { padding: .6rem .3rem 0; margin-bottom: .2rem; }
@@ -195,3 +196,42 @@ body.noche[data-tono] {
 }
 body.noche .fondo { filter: brightness(.5) saturate(.8) hue-rotate(-6deg); }
 body.noche .ag-caja.en-menu .ag-nav[data-lid] { filter: brightness(.82); }
+
+/* ==================== Ajustes: pantalla propia ==================== */
+.panel#ajustes {
+  top: 0; right: 0; bottom: 0; left: auto; width: min(44rem, 100%); max-height: none; padding: 0; border-radius: 0; gap: 0; overflow: hidden;
+  display: flex; flex-direction: column; transform: translateX(28px); z-index: 28; box-shadow: -26px 0 60px rgba(0, 0, 0, .32);
+}
+.panel#ajustes.abierto { transform: none; }
+.panel#ajustes::before { display: none; }
+.aj-cab {
+  position: relative; flex: none; display: flex; flex-direction: column; justify-content: flex-end; gap: .2rem; height: 11.5rem; padding: 1.2rem 1.8rem 1.1rem; color: var(--texto);
+  background: linear-gradient(90deg, var(--lavado-v) 0%, var(--lavado-v) 35%, transparent 100%), var(--hero) center 40% / cover;
+  text-shadow: 0 0 .6rem var(--halo), 0 0 1.4rem var(--halo);
+}
+.aj-cab h1 { margin: 0; font-family: var(--serif); font-size: 2.8rem; font-weight: 400; letter-spacing: -.015em; line-height: 1; }
+.aj-cab p { margin: 0; font-size: .74rem; color: var(--texto-suave); }
+.aj-nav { flex: none; display: flex; gap: .3rem; padding: .7rem 1.4rem 0; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid color-mix(in srgb, var(--texto) 13%, transparent); }
+.aj-nav::-webkit-scrollbar { display: none; }
+.aj-nav button { flex: none; padding: .6rem .9rem; border: 0; border-bottom: 2px solid transparent; background: none; cursor: pointer; font: inherit; font-size: .9rem; color: var(--texto-suave); transition: color .15s, border-color .15s; }
+.aj-nav button:hover { color: var(--texto); }
+.aj-nav button.on { color: var(--texto); font-weight: 600; border-bottom-color: var(--acento); }
+.aj-paginas { flex: 1; min-height: 0; overflow-y: auto; padding: 1.3rem 1.8rem 2.4rem; scrollbar-width: thin; scrollbar-color: var(--sutil) transparent; }
+.aj-pag { display: none; flex-direction: column; gap: 1.5rem; }
+.aj-pag.on { display: flex; animation: ag-entra .25s ease both; }
+.aj-pag .grupo { border-top: 0; padding-top: 0; }
+.aj-pag .grupo + .grupo { padding-top: 1.4rem; border-top: 1px solid color-mix(in srgb, var(--texto) 13%, transparent); }
+.aj-pag .grupo h2 { font-family: var(--serif); font-size: 1.15rem; font-weight: 400; font-style: italic; letter-spacing: 0; text-transform: none; color: var(--texto); }
+.ajuste.desliz { gap: 1rem; }
+.ajuste.desliz span { flex: none; width: 5.5rem; }
+.ajuste.desliz input[type=range] { flex: 1; min-width: 0; }
+.ajuste.desliz output { flex: none; width: 3rem; text-align: right; font-size: .82rem; font-variant-numeric: tabular-nums; color: var(--texto-suave); }
+@media (max-width: 760px) {
+  .panel#ajustes { top: 0; bottom: 0; width: 100%; padding: 0; transform: none; box-shadow: none; }
+  .aj-cab { height: calc(10.5rem + var(--sat)); padding: calc(var(--sat) + 1rem) 1.2rem 1rem; background: linear-gradient(180deg, transparent 0%, var(--lavado-v) 100%), var(--hero) center 35% / cover; }
+  .aj-cab h1 { font-size: 2.6rem; }
+  .aj-nav { padding: .5rem .8rem 0; }
+  .aj-paginas { padding: 1.2rem 1.2rem calc(2rem + var(--sab)); }
+}
+
+body:has(#ajustes.abierto) .barra { display: none; }

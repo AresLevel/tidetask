@@ -12,8 +12,8 @@
 <link rel="apple-touch-icon" href="img/app/icono-180.png">
 <title>TideTask</title>
 <link rel="icon" id="favicon" href="img/app/icono-192.png">
-<link rel="stylesheet" href="agenda.css?v=46">
-<link rel="stylesheet" href="acuarela.css?v=46">
+<link rel="stylesheet" href="agenda.css?v=47">
+<link rel="stylesheet" href="acuarela.css?v=47">
 <style>
   :root {
     /* Los define cada escena desde JS */
@@ -382,49 +382,90 @@
 
 <!-- Ajustes -->
 <aside class="panel" id="ajustes" data-titulo="Ajustes">
-  <div class="grupo">
-    <h2>Duraciones</h2>
-    <div class="ajuste"><span>Enfoque</span><div class="paso"><button data-acc="paso" data-k="enfoque" data-d="-1">−</button><output data-o="enfoque"></output><button data-acc="paso" data-k="enfoque" data-d="1">+</button></div></div>
-    <div class="ajuste"><span>Descanso</span><div class="paso"><button data-acc="paso" data-k="corto" data-d="-1">−</button><output data-o="corto"></output><button data-acc="paso" data-k="corto" data-d="1">+</button></div></div>
-    <div class="ajuste"><span>Descanso largo</span><div class="paso"><button data-acc="paso" data-k="largo" data-d="-1">−</button><output data-o="largo"></output><button data-acc="paso" data-k="largo" data-d="1">+</button></div></div>
-    <div class="ajuste"><span>Pomodoros antes del largo</span><div class="paso"><button data-acc="paso" data-k="ciclos" data-d="-1">−</button><output data-o="ciclos"></output><button data-acc="paso" data-k="ciclos" data-d="1">+</button></div></div>
+  <header class="aj-cab">
+    <h1>Ajustes</h1>
+    <p>Así se ve la sombra lateral con el paisaje de ahora</p>
+  </header>
+  <nav class="aj-nav" id="ajNav" aria-label="Secciones de ajustes">
+    <button class="on" data-pag="aspecto">Apariencia</button>
+    <button data-pag="enfoque">Enfoque</button>
+    <button data-pag="avisos">Avisos</button>
+    <button data-pag="sonido">Sonido</button>
+  </nav>
+  <div class="aj-paginas" id="ajPaginas">
+
+    <section class="aj-pag on" data-pag="aspecto">
+      <div class="grupo">
+        <h2>Tema</h2>
+        <div class="chips"><button class="chip" data-acc="tema" data-v="dia">Día</button><button class="chip" data-acc="tema" data-v="noche">Noche</button><button class="chip" data-acc="tema" data-v="auto">Como mi sistema</button></div>
+        <p class="nota">Noche oscurece el paisaje y vuelve clara la tinta.</p>
+      </div>
+      <div class="grupo">
+        <h2>Sombra lateral</h2>
+        <p class="nota">Es el lavado suave que ayuda a leer el texto sobre la acuarela. Bájala para ver más paisaje, súbela para leer mejor.</p>
+        <div class="ajuste desliz"><span>Intensidad</span><input type="range" id="sombraInt" min="0" max="100" step="5" aria-label="Intensidad de la sombra lateral"><output id="sombraIntO"></output></div>
+        <div class="ajuste desliz solo-escritorio"><span>Ancho</span><input type="range" id="sombraAncho" min="40" max="100" step="5" aria-label="Ancho de la sombra lateral"><output id="sombraAnchoO"></output></div>
+      </div>
+      <div class="grupo">
+        <h2>Paisaje de inicio</h2>
+        <p class="nota">Cada lista puede tener su propio paisaje (en Personalizar). Este es el de la pantalla principal.</p>
+        <div class="mini" id="fondoSel"></div>
+      </div>
+      <div class="grupo">
+        <h2>Movimiento</h2>
+        <div class="ajuste"><span>Animaciones</span><div class="chips"><button class="chip" data-acc="anim" data-v="siempre">Siempre</button><button class="chip" data-acc="anim" data-v="sistema">Según mi sistema</button></div></div>
+      </div>
+    </section>
+
+    <section class="aj-pag" data-pag="enfoque">
+      <div class="grupo">
+        <h2>Duraciones</h2>
+        <div class="ajuste"><span>Enfoque</span><div class="paso"><button data-acc="paso" data-k="enfoque" data-d="-1">−</button><output data-o="enfoque"></output><button data-acc="paso" data-k="enfoque" data-d="1">+</button></div></div>
+        <div class="ajuste"><span>Descanso</span><div class="paso"><button data-acc="paso" data-k="corto" data-d="-1">−</button><output data-o="corto"></output><button data-acc="paso" data-k="corto" data-d="1">+</button></div></div>
+        <div class="ajuste"><span>Descanso largo</span><div class="paso"><button data-acc="paso" data-k="largo" data-d="-1">−</button><output data-o="largo"></output><button data-acc="paso" data-k="largo" data-d="1">+</button></div></div>
+        <div class="ajuste"><span>Pomodoros antes del largo</span><div class="paso"><button data-acc="paso" data-k="ciclos" data-d="-1">−</button><output data-o="ciclos"></output><button data-acc="paso" data-k="ciclos" data-d="1">+</button></div></div>
+      </div>
+      <div class="grupo">
+        <h2>Transiciones</h2>
+        <div class="ajuste"><span>Empezar el descanso solo<small>Si no, espera a que lo inicies</small></span><button class="sw" data-acc="sw" data-k="autoDescanso" role="switch"></button></div>
+        <div class="ajuste"><span>Empezar el enfoque solo</span><button class="sw" data-acc="sw" data-k="autoEnfoque" role="switch"></button></div>
+      </div>
+      <div class="grupo">
+        <h2>Escena en los descansos</h2>
+        <div class="ajuste"><span>Cambiar de escena al descansar</span><button class="sw" data-acc="sw" data-k="fondoDescansoOn" role="switch"></button></div>
+        <div class="mini" id="descansoSel"></div>
+      </div>
+      <p class="nota solo-escritorio">Atajos en el reloj: Espacio inicia/pausa · R reinicia · S salta · F pantalla completa · Esc vuelve a la Agenda.</p>
+    </section>
+
+    <section class="aj-pag" data-pag="avisos">
+      <div class="grupo">
+        <h2>Tareas</h2>
+        <div class="ajuste"><span>Recordatorios de tareas<small>Avisan solo mientras esta página esté abierta (en la app del teléfono, también con ella cerrada)</small></span><button class="sw" data-acc="sw" data-k="recordar" role="switch"></button></div>
+      </div>
+      <div class="grupo">
+        <h2>Al terminar un enfoque</h2>
+        <div class="ajuste"><span>Alarma al terminar</span><button class="sw" data-acc="sw" data-k="alarma" role="switch"></button></div>
+        <div class="ajuste"><span>Notificación del navegador<small>Te avisa aunque estés en otra pestaña</small></span><button class="sw" data-acc="sw" data-k="notif" role="switch"></button></div>
+      </div>
+    </section>
+
+    <section class="aj-pag" data-pag="sonido">
+      <div class="grupo">
+        <h2>Sonido ambiente</h2>
+        <div class="chips" id="chipsAmb">
+          <button class="chip" data-acc="amb" data-v="ninguno">Ninguno</button>
+          <button class="chip" data-acc="amb" data-v="auto">Según la escena</button>
+          <button class="chip" data-acc="amb" data-v="lluvia">Lluvia</button>
+          <button class="chip" data-acc="amb" data-v="olas">Olas</button>
+          <button class="chip" data-acc="amb" data-v="viento">Viento</button>
+          <button class="chip" data-acc="amb" data-v="grillos">Grillos</button>
+        </div>
+        <div class="ajuste desliz"><span>Volumen</span><input type="range" id="volumen" min="0" max="100" aria-label="Volumen"></div>
+      </div>
+    </section>
+
   </div>
-  <div class="grupo">
-    <h2>Transiciones</h2>
-    <div class="ajuste"><span>Empezar el descanso solo<small>Si no, espera a que lo inicies</small></span><button class="sw" data-acc="sw" data-k="autoDescanso" role="switch"></button></div>
-    <div class="ajuste"><span>Empezar el enfoque solo</span><button class="sw" data-acc="sw" data-k="autoEnfoque" role="switch"></button></div>
-    <div class="ajuste"><span>Alarma al terminar</span><button class="sw" data-acc="sw" data-k="alarma" role="switch"></button></div>
-    <div class="ajuste"><span>Notificación del navegador<small>Te avisa aunque estés en otra pestaña</small></span><button class="sw" data-acc="sw" data-k="notif" role="switch"></button></div>
-  </div>
-  <div class="grupo">
-    <h2>Tareas y apariencia</h2>
-    <div class="ajuste"><span>Recordatorios de tareas<small>Avisan solo mientras esta página esté abierta</small></span><button class="sw" data-acc="sw" data-k="recordar" role="switch"></button></div>
-    <div class="ajuste"><span>Tema<small>Noche oscurece el paisaje y la tinta</small></span><div class="chips"><button class="chip" data-acc="tema" data-v="dia">Día</button><button class="chip" data-acc="tema" data-v="noche">Noche</button><button class="chip" data-acc="tema" data-v="auto">Como mi sistema</button></div></div>
-    <div class="ajuste"><span>Animaciones</span><div class="chips"><button class="chip" data-acc="anim" data-v="siempre">Siempre</button><button class="chip" data-acc="anim" data-v="sistema">Según mi sistema</button></div></div>
-  </div>
-  <div class="grupo">
-    <h2>Sonido ambiente</h2>
-    <div class="chips" id="chipsAmb">
-      <button class="chip" data-acc="amb" data-v="ninguno">Ninguno</button>
-      <button class="chip" data-acc="amb" data-v="auto">Según la escena</button>
-      <button class="chip" data-acc="amb" data-v="lluvia">Lluvia</button>
-      <button class="chip" data-acc="amb" data-v="olas">Olas</button>
-      <button class="chip" data-acc="amb" data-v="viento">Viento</button>
-      <button class="chip" data-acc="amb" data-v="grillos">Grillos</button>
-    </div>
-    <input type="range" id="volumen" min="0" max="100" aria-label="Volumen">
-  </div>
-  <div class="grupo">
-    <h2>Escena en los descansos</h2>
-    <div class="ajuste"><span>Cambiar de escena al descansar</span><button class="sw" data-acc="sw" data-k="fondoDescansoOn" role="switch"></button></div>
-    <div class="mini" id="descansoSel"></div>
-  </div>
-  <div class="grupo">
-    <h2>Paisaje de inicio</h2>
-    <p class="nota">Cada lista puede tener su propio paisaje (en Personalizar). Este es el de la pantalla principal.</p>
-    <div class="mini" id="fondoSel"></div>
-  </div>
-  <p class="nota solo-escritorio">Atajos: Espacio inicia/pausa · R reinicia · S salta · F pantalla completa · Esc cierra paneles.</p>
 </aside>
 
 <div class="agenda" id="agenda"></div>
@@ -432,8 +473,8 @@
 <div class="toast" id="toast"></div>
 
 <script>window.NUBE_ACTIVA = true;   // sincronización con Google Drive (origen https://areslevel.github.io autorizado en el cliente OAuth)</script>
-<script src="nube.js?v=46"></script>
-<script src="agenda.js?v=46"></script>
+<script src="nube.js?v=47"></script>
+<script src="agenda.js?v=47"></script>
 <script>
   // ============ Utilidades ============
   const $ = id => document.getElementById(id);
@@ -494,7 +535,7 @@
   const COLOR_ICONO = { enfoque: '#e8553d', corto: '#4fb286', largo: '#4f8fe0' };
   const LIM = { enfoque: [1, 180], corto: [1, 60], largo: [1, 90], ciclos: [2, 10] };
   const DEF = { enfoque: 25, corto: 5, largo: 15, ciclos: 4, autoDescanso: false, autoEnfoque: false, alarma: true,
-                notif: false, recordar: false, anim: 'siempre', fondoDescansoOn: false, fondoDescanso: 'azul', ambiente: 'auto', volumen: .5, tema: 'dia' };
+                notif: false, recordar: false, anim: 'siempre', fondoDescansoOn: false, fondoDescanso: 'azul', ambiente: 'auto', volumen: .5, tema: 'dia', sombra: 100, sombraAncho: 100 };
   let cfg = { ...DEF, ...leer('pomo.cfg', {}) };
   const guardarCfg = () => { poner('pomo.cfg', cfg); if (window.Agenda && Agenda.reprogramar) Agenda.reprogramar(); };
   const dur = m => cfg[m] * 60000;
@@ -508,6 +549,11 @@
     const l = document.getElementById('luna'); if (l) { l.classList.toggle('on', noche); l.dataset.tip = noche ? 'Modo día' : 'Modo noche'; l.setAttribute('aria-label', l.dataset.tip); }
   }
   sistemaOscuro.addEventListener('change', aplicarTema);
+  // Sombra lateral: intensidad y ancho del lavado que ayuda a leer sobre la acuarela
+  function aplicarSombra() {
+    const r = document.documentElement.style;
+    r.setProperty('--sombra', cfg.sombra / 100); r.setProperty('--ancho', cfg.sombraAncho / 100);
+  }
 
   // ============ Estado ============
   let modo = 'enfoque', restante = dur('enfoque'), fin = null, corriendo = false, pomodoro = 1;
@@ -530,6 +576,7 @@
     raiz.setProperty('--acento', tema.acento);
     raiz.setProperty('--acento-texto', tema.acentoTexto);
     raiz.setProperty('--texto', tema.texto);
+    raiz.setProperty('--hero', `url(${urlFondo(tema.id)})`);
     document.body.dataset.tono = tema.tono;
     const capas = [$('f1'), $('f2')];
     const nueva = capas[capa ^= 1], vieja = capas[capa ^ 1];
@@ -858,6 +905,8 @@
     document.querySelectorAll('[data-acc="amb"]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.ambiente));
     document.querySelectorAll('[data-acc="anim"]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.anim));
     document.querySelectorAll('[data-acc="tema"]').forEach(b => b.classList.toggle('on', b.dataset.v === cfg.tema));
+    $('sombraInt').value = cfg.sombra; $('sombraIntO').textContent = cfg.sombra + '%';
+    $('sombraAncho').value = cfg.sombraAncho; $('sombraAnchoO').textContent = cfg.sombraAncho + '%';
     document.body.classList.toggle('anim-siempre', cfg.anim !== 'sistema');
     document.querySelectorAll('#descansoSel button').forEach(b => b.classList.toggle('on', b.dataset.fd === cfg.fondoDescanso));
     $('volumen').value = Math.round(cfg.volumen * 100);
@@ -888,6 +937,14 @@
     }
     guardarCfg(); pintarAjustes(); pintar(); guardarSesion();
   });
+  // pestañas de Ajustes
+  document.querySelectorAll('#ajNav button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#ajNav button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.aj-pag').forEach(p => p.classList.toggle('on', p.dataset.pag === b.dataset.pag));
+    $('ajPaginas').scrollTop = 0;
+  });
+  $('sombraInt').addEventListener('input', e => { cfg.sombra = +e.target.value; aplicarSombra(); $('sombraIntO').textContent = cfg.sombra + '%'; guardarCfg(); });
+  $('sombraAncho').addEventListener('input', e => { cfg.sombraAncho = +e.target.value; aplicarSombra(); $('sombraAnchoO').textContent = cfg.sombraAncho + '%'; guardarCfg(); });
   $('volumen').addEventListener('input', e => {
     cfg.volumen = e.target.value / 100; guardarCfg();
     if (amb && ac) amb.master.gain.setTargetAtTime(cfg.volumen * .8, ac.currentTime, .05);
@@ -927,7 +984,7 @@
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
   // ============ Arranque: recupera la sesión si se cerró o recargó la página ============
-  aplicarTema();
+  aplicarTema(); aplicarSombra();
   ponerFondo(fondoElegido);
   const ses = leer('pomo.ses', null);
   let terminoFuera = false;
