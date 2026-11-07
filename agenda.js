@@ -726,17 +726,41 @@
     if (ui.nuevaLista) setTimeout(() => { const i = document.getElementById('agNuevaLista'); if (i) i.focus(); }, 0);
   }
   function hace(ms) { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'ahora mismo' : m < 60 ? `hace ${m} min` : `hace ${Math.round(m / 60)} h`; }
+  /** Copia en la nube: una fila discreta al pie de la barra lateral y, al tocarla, un pequeño menú. */
   function nubeUI() {
     if (!g.Nube || !g.NUBE_ACTIVA) return null;
-    const on = Nube.conectada(), est = Nube.estado;
-    if (!on) return h('div', { class: 'ag-nube' }, h('p', null, 'Tus tareas se guardan solo en este navegador.'),
-      h('button', { class: 'ag-btn', onclick: conectarNube }, ico('nube'), 'Sincronizar con Google Drive'));
-    const texto = { sincronizando: 'Sincronizando…', ok: `Sincronizado ${Nube.ult ? hace(Nube.ult) : ''}`, espera: 'Conectado', offline: 'Sin conexión: se guarda aquí y se subirá luego',
-      auth: 'Hay que volver a conectar tu cuenta', error: 'No se pudo sincronizar' }[est] || 'Conectado';
-    return h('div', { class: 'ag-nube' }, h('p', null, h('b', null, texto), Nube.email && h('span', { class: 'ag-correo' }, Nube.email)),
-      h('div', { class: 'ag-chips' },
-        est === 'auth' ? h('button', { class: 'ag-btn', onclick: conectarNube }, 'Reconectar') : h('button', { class: 'ag-chip', onclick: () => sincronizar(true) }, 'Sincronizar ahora'),
-        h('button', { class: 'ag-chip', onclick: () => { Nube.desconectar(); lado(); } }, 'Desconectar')));
+    const on = Nube.conectada(), est = on ? Nube.estado : 'apagada';
+    const FILA = {
+      apagada: ['Solo en este dispositivo', 'Activar copia en la nube', 'reposo'],
+      sincronizando: ['Actualizando…', Nube.email || 'Copia en Google Drive', 'trabajando'],
+      ok: ['Copia al día', Nube.ult ? hace(Nube.ult) : (Nube.email || ''), 'bien'],
+      espera: ['Copia en la nube', Nube.email || 'Conectada', 'bien'],
+      offline: ['Sin conexión', 'Se subirá al volver internet', 'aviso'],
+      auth: ['Hay que reconectar', 'Toca para volver a entrar', 'mal'],
+      error: ['No se pudo actualizar', 'Toca para ver opciones', 'mal'],
+    }[est] || ['Copia en la nube', '', 'bien'];
+    const cerrarMenu = () => { ui.nubeMenu = false; lado(); };
+    let menu = null;
+    if (ui.nubeMenu) {
+      if (!on) {
+        menu = h('div', { class: 'ag-nube-menu', role: 'dialog' },
+          h('h4', null, 'Copia en tu Google Drive'),
+          h('p', null, 'Guarda tus tareas en una carpeta de tu Drive para verlas igual en el celular y en el computador. Solo toca los archivos que crea esta app.'),
+          h('button', { class: 'ag-btn', onclick: () => { cerrarMenu(); conectarNube(); } }, 'Conectar con Google'));
+      } else {
+        menu = h('div', { class: 'ag-nube-menu', role: 'dialog' },
+          h('h4', null, Nube.email || 'Cuenta de Google'),
+          h('p', null, est === 'ok' && Nube.ult ? `Última copia ${hace(Nube.ult)}.` : { sincronizando: 'Actualizando ahora…', offline: 'Sin conexión: tus cambios se guardan aquí y se suben después.', auth: 'La sesión caducó. Vuelve a entrar para seguir con la copia.', error: 'No se pudo completar la última copia.' }[est] || 'La copia está activa.'),
+          est === 'auth' ? h('button', { class: 'ag-btn', onclick: () => { cerrarMenu(); conectarNube(); } }, 'Volver a entrar')
+            : h('button', { class: 'ag-btn', disabled: est === 'sincronizando', onclick: () => { sincronizar(true); } }, est === 'sincronizando' ? 'Actualizando…' : 'Actualizar ahora'),
+          confirmable('Dejar de usar la copia', 'Tus tareas se quedan aquí. ¿Seguro?', () => { Nube.desconectar(); ui.nubeMenu = false; lado(); }));
+      }
+    }
+    return h('div', { class: 'ag-nube' }, menu,
+      h('button', { class: 'ag-nube-fila ' + FILA[2] + (ui.nubeMenu ? ' abierta' : ''), 'aria-expanded': !!ui.nubeMenu, 'aria-label': 'Copia en la nube: ' + FILA[0],
+          onclick: e => { e.stopPropagation(); ui.nubeMenu = !ui.nubeMenu; lado(); } },
+        h('span', { class: 'ag-nube-ico' }, ico('nube'), h('i', { class: 'ag-nube-punto' })),
+        h('span', { class: 'ag-nube-txt' }, h('b', null, FILA[0]), h('small', null, FILA[1]))));
   }
 
   function seleccionar(id) { ui.sel = ui.sel === id ? null : id; calAbierto = false; iconosAbierto = false; listaUI(); detalle(); refs.caja.classList.toggle('con-detalle', !!ui.sel); }
@@ -890,6 +914,7 @@
     iniciar(opciones = {}) {
       alCambiarActiva = opciones.alCambiarActiva || null;
       cargar(); construir();
+      document.addEventListener('click', e => { if (ui.nubeMenu && !e.target.closest('.ag-nube')) { ui.nubeMenu = false; if (abierta) lado(); } });
       refs.hoy = document.getElementById('hoy'); refrescarHoy();
       if (alCambiarActiva) alCambiarActiva(Agenda.activaTitulo());
       addEventListener('keydown', e => { if (abierta && e.key === 'Escape' && !e.defaultPrevented) { if (ui.sel) seleccionar(ui.sel); else cerrar(); } });

@@ -41,10 +41,28 @@ body[data-tono="oscuro"] { --ag-bg: rgba(255,255,255,.8); --ag-solid: rgba(250,2
 .ag-nav em { font-style: normal; font-size: .72rem; opacity: .75; font-variant-numeric: tabular-nums; }
 .ag-punto { display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; flex: none; }
 .ag-punto.grande { width: .7rem; height: .7rem; margin: 0 .17rem; }
-.ag-nube { margin-top: auto; padding: .8rem; border-radius: .9rem; background: var(--campo); font-size: .76rem; line-height: 1.4; display: flex; flex-direction: column; gap: .6rem; }
-.ag-nube p { margin: 0; color: var(--texto-suave); }
-.ag-nube b { color: var(--texto); font-weight: 500; display: block; }
-.ag-correo { display: block; overflow: hidden; text-overflow: ellipsis; }
+.ag-nube { margin-top: auto; position: relative; font-size: .76rem; line-height: 1.35; }
+.ag-nube-fila { display: flex; align-items: center; gap: .65rem; width: 100%; padding: .55rem .6rem; border: 0; border-radius: .8rem; background: none; cursor: pointer; text-align: left; color: inherit; transition: background .15s; }
+.ag-nube-fila:hover, .ag-nube-fila.abierta { background: var(--campo); }
+.ag-nube-ico { position: relative; width: 2rem; height: 2rem; flex: none; display: grid; place-items: center; border-radius: .6rem; background: var(--campo); color: var(--texto-suave); }
+.ag-nube-ico svg.ag-ico { width: 1.05rem; height: 1.05rem; }
+.ag-nube-punto { position: absolute; right: -.15rem; bottom: -.15rem; width: .6rem; height: .6rem; border-radius: 50%; border: 2px solid var(--ag-solid); background: var(--texto-suave); }
+.ag-nube-fila.bien .ag-nube-punto { background: #4fb286; } .ag-nube-fila.bien .ag-nube-ico { color: var(--texto); }
+.ag-nube-fila.aviso .ag-nube-punto { background: #f0a93b; }
+.ag-nube-fila.mal .ag-nube-punto { background: var(--vencida); }
+.ag-nube-fila.trabajando .ag-nube-punto { background: var(--acento); animation: latido 1s ease-in-out infinite; }
+.ag-nube-fila.trabajando .ag-nube-ico svg { animation: ag-gira 1.6s linear infinite; }
+@keyframes ag-gira { to { transform: rotate(360deg); } }
+.ag-nube-txt { min-width: 0; display: flex; flex-direction: column; }
+.ag-nube-txt b { font-weight: 500; font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-nube-txt small { color: var(--texto-suave); font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-nube-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + .45rem); z-index: 5; display: flex; flex-direction: column; gap: .7rem; padding: 1rem; border-radius: 1rem;
+  background: var(--ag-solid); border: 1px solid var(--borde); box-shadow: 0 14px 40px rgba(0,0,0,.28); animation: ag-entra .2s ease both; }
+.ag-nube-menu h4 { margin: 0; font-size: .85rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.ag-nube-menu p { margin: 0; color: var(--texto-suave); font-size: .76rem; }
+.ag-nube-menu .ag-chip.peligro { align-self: flex-start; background: none; border-color: transparent; padding-inline: 0; color: var(--texto-suave); font-size: .72rem; min-height: 0; text-decoration: underline; }
+.ag-nube-menu .ag-chip.peligro.on { color: var(--vencida); }
+.ag-nube-menu .ag-btn:disabled { opacity: .6; cursor: default; }
 
 /* ---- centro ---- */
 .ag-centro { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 1.1rem 1.3rem 0; }
