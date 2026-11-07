@@ -348,10 +348,13 @@
     crear({ titulo: p.titulo, prio: p.prio, etiquetas: p.etiquetas, fecha: p.fecha || L.hoy(), hora: p.hora });
   }
   const textoFecha = () => { const s = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()); return s.charAt(0).toUpperCase() + s.slice(1); };
+  /** Rutinas que ya se cumplieron hoy: siguen visibles, tachadas, hasta que pase el día. */
+  const rutinasHechasHoy = hoy => E.tareas.filter(t => t.rep && !t.hecha && t.ultima === hoy);
+  const vuelve = (t, hoy) => `Hecha hoy · vuelve ${L.etiquetaFecha(t.fecha, hoy).toLowerCase()}`;
   function refrescarHoy() {
     const c = refs.hoy; if (!c) return;
     const hoy = L.hoy(), xs = L.filtrar(E, { tipo: 'hoy' }, hoy, '', false);
-    const normales = xs.filter(t => !t.rep), rutinas = xs.filter(t => t.rep);
+    const normales = xs.filter(t => !t.rep), rutinas = xs.filter(t => t.rep), hechasR = rutinasHechasHoy(hoy);
     const hechasHoy = E.tareas.filter(t => (t.hecha && t.hechaEn && L.hoy(new Date(t.hechaEn)) === hoy) || (t.rep && t.ultima === hoy)).length;
     const a = document.activeElement, tecleando = !!(a && c.contains(a) && a.classList.contains('hy-nueva')), valor = tecleando ? a.value : '';
     const entrada = h('input', { type: 'text', class: 'hy-nueva', placeholder: 'Añadir una tarea…  (ej: Estudiar química #clase !alta mañana)', maxLength: 200, 'aria-label': 'Añadir tarea para hoy',
@@ -379,10 +382,15 @@
         h('button', { class: 'hy-ver', onclick: () => Agenda.abrirHoy() }, 'Agenda')),
       h('div', { class: 'hy-caja' }, h('span', { class: 'hy-mas' }, ico('mas')), entrada),
       h('div', { class: 'hy-lista' },
-        xs.length === 0 && h('p', { class: 'hy-vacio' }, 'Nada pendiente para hoy. Escribe arriba lo que quieras hacer, o empieza un enfoque libre.'),
+        xs.length === 0 && hechasR.length === 0 && h('p', { class: 'hy-vacio' }, 'Nada pendiente para hoy. Escribe arriba lo que quieras hacer, o empieza un enfoque libre.'),
         normales.map(fila),
         rutinas.length > 0 && h('div', { class: 'hy-grupo' }, 'Rutinas'),
-        rutinas.map(fila)),
+        rutinas.map(fila),
+        hechasR.length > 0 && h('div', { class: 'hy-grupo' }, 'Cumplidas hoy'),
+        hechasR.map(t => h('div', { class: 'hy-fila hecha', role: 'button', tabIndex: 0, onclick: () => Agenda.abrirTarea(t.id) },
+          h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Desmarcar ' + (t.titulo || 'rutina'), onclick: e => { e.stopPropagation(); alternarDia(t, hoy); } }),
+          insignia(t),
+          h('div', { class: 'hy-cuerpo' }, h('div', { class: 'hy-t' }, t.titulo || '(sin título)'), h('div', { class: 'hy-metas' }, h('span', { class: 'hy-meta' }, vuelve(t, hoy))))))),
       h('footer', { class: 'hy-pie' },
         hechasHoy > 0 && h('span', { class: 'hy-hechas' }, `${hechasHoy} ${hechasHoy === 1 ? 'hecha' : 'hechas'} hoy`),
         h('span', { style: 'flex:1' }),
@@ -562,6 +570,16 @@
         c.append(fila(t, hoy));
       }
     }
+    if (!ui.q && ui.vista.tipo === 'hoy') {
+      const hr = rutinasHechasHoy(hoy);
+      if (hr.length) {
+        if (!xs.length) c.textContent = '';
+        c.append(h('div', { class: 'ag-grupo' }, 'Cumplidas hoy'));
+        for (const t of hr) c.append(h('div', { class: 'ag-fila hecha' + (ui.sel === t.id ? ' sel' : ''), onclick: () => seleccionar(t.id) },
+          h('button', { class: 'ag-check p' + t.prio, 'aria-label': 'Desmarcar', onclick: e => { e.stopPropagation(); alternarDia(t, hoy); } }),
+          insignia(t), h('div', { class: 'ag-cuerpo' }, h('div', { class: 'ag-titulo' }, t.titulo || '(sin título)'), h('div', { class: 'ag-metas' }, h('span', { class: 'ag-meta' }, vuelve(t, hoy))))));
+      }
+    }
     refs.pie.textContent = '';
     if (!ui.q && (ui.vista.tipo === 'lista' || ui.vista.tipo === 'etiqueta')) {
       refs.pie.append(h('button', { class: 'ag-chip' + (ui.verHechas ? ' on' : ''), onclick: () => { ui.verHechas = !ui.verHechas; listaUI(); } }, ui.verHechas ? 'Ocultar completadas' : 'Mostrar completadas'));
@@ -619,7 +637,7 @@
   function alternarDia(t, d) {
     const hoy = L.hoy(), ahora = Date.now();
     const evs = E.registro.filter(r => r.k === 'hecha' && r.tarea === t.id && r.dia === d);
-    if (evs.length) {
+    if (evs.length || (d === hoy && t.rep && t.ultima === hoy)) {
       E.registro = E.registro.filter(r => !evs.includes(r)); evs.forEach(r => { E.borrados[r.id] = ahora; });
       if (d === hoy) Object.assign(t, { fecha: hoy, ultima: null, veces: Math.max(0, (t.veces || 0) - 1), t: ahora });   // lo de hoy se deshace: vuelve a quedar pendiente
     } else if (d === hoy) { alternarHecha(t.id); return; }

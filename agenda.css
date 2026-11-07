@@ -289,3 +289,7 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 @media (max-width: 720px) { .ag-rut { grid-template-columns: minmax(4rem, 1fr) repeat(7, 1.75rem) 2.6rem; gap: .2rem; } .ag-celda { width: 1.75rem; height: 1.75rem; } }
 
 .ag-nueva[hidden] { display: none; }
+
+.hy-fila.hecha .hy-t { text-decoration: line-through; opacity: .55; }
+.hy-fila.hecha .ag-check { background: var(--acento); border-color: var(--acento); }
+.hy-fila.hecha .ag-check::after { content: ''; position: absolute; left: 50%; top: 46%; width: .3rem; height: .55rem; border: solid var(--acento-texto); border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
