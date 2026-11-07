@@ -363,10 +363,8 @@ body:not(.anim-siempre) .hy-fila, body:not(.anim-siempre) .ag-fila { animation: 
 .ag-ctx-op.peligro { color: var(--vencida); }
 .ag-ctx-par { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem; }
 .ag-ctx-par .ag-ctx-op { padding-inline: .6rem; }
-@media (max-width: 760px) {
-  /* en el teléfono las acciones de la lista salen al mantenerla pulsada; en el encabezado solo queda el campo de renombrar */
-  .ag-acciones .ag-chip { display: none; }
-}
+/* las acciones de una lista (Personalizar, Renombrar, Eliminar) salen al mantenerla pulsada o con clic derecho; en el encabezado solo queda el campo de renombrar */
+.ag-acciones .ag-chip { display: none; }
 
 /* ---- Deslizar una tarea a la derecha para eliminarla ---- */
 .hy-fila, .ag-fila { position: relative; touch-action: pan-y; }

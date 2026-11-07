@@ -767,6 +767,10 @@
     const ahora = Date.now(), g = { id: 'g' + ahora.toString(36), nombre: 'Nuevo grupo', orden: Math.max(0, ...E.grupos.map(x => x.orden || 0)) + 1, t: ahora };
     E.grupos.push(g); guardar(); ui.renombrarGrupo = g.id; ui.enfocarGrupo = true; ui.sidebar = true; lado();
   }
+  function nuevaLista() {   // se crea al instante; el nombre se escribe en Personalizar
+    const l = { id: 'l' + Date.now().toString(36), nombre: 'Nueva lista', color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, grupo: '', t: Date.now() };
+    E.listas.push(l); guardar(); irALista(l); ui.personalizar = true; ui.enfocarNombre = true; todo();
+  }
   function nuevaListaEn(g) {
     const l = { id: 'l' + Date.now().toString(36), nombre: 'Nueva lista', color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, grupo: g.id, t: Date.now() };
     E.listas.push(l); cerrados.delete(g.id); guardarCerrados(); guardar(); irALista(l); ui.personalizar = true; ui.enfocarNombre = true; todo();
@@ -922,7 +926,7 @@
       };
       const pulsacion = !esLista ? {} : {
         'data-lid': extra.id,
-        onpointerdown: e => { el = e.currentTarget; largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
+        onpointerdown: e => { if (e.pointerType === 'mouse' && e.button !== 0) return; el = e.currentTarget; largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
           tm = setTimeout(() => {   // mantener pulsada: la lista se levanta; si se arrastra se reordena, si se suelta quieta abre su menú
             largo = alzada = true; cerrarMenuCtx(); el.classList.add('arrastrando'); try { el.setPointerCapture(pid); } catch { /* sin captura */ }
             if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } }
@@ -954,22 +958,12 @@
       h('div', { class: 'ag-seccion' }, item('hoy', 'Hoy', 'hoy', cu.hoy), item('proximas', 'Próximas', 'prox', cu.proximas), item('todas', 'Todas', 'todas', cu.todas),
         item('rutinas', 'Rutinas', 'rutinas', cu.rutinas), item('historial', 'Historial', 'hechas', 0)),
       h('div', { class: 'ag-seccion' },
-        h('div', { class: 'ag-sec-tit' }, 'Listas', h('span', { class: 'ag-sec-bot' }, h('button', { class: 'ag-mini', 'aria-label': 'Nuevo grupo de listas', dataset: { tip: 'Nuevo grupo' }, onclick: nuevoGrupo }, ico('carpetamas')), h('button', { class: 'ag-mini', 'aria-label': 'Nueva lista', onclick: () => {
-          if (matchMedia('(max-width: 760px)').matches) {   // teléfono: se crea al instante y el nombre se escribe en Personalizar
-            const l = { id: 'l' + Date.now().toString(36), nombre: 'Nueva lista', color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, t: Date.now() };
-            E.listas.push(l); guardar(); irALista(l); ui.personalizar = true; ui.enfocarNombre = true; todo(); return;
-          }
-          ui.nuevaLista = true; lado(); } }, ico('mas')))),
+        h('div', { class: 'ag-sec-tit' }, 'Listas', h('span', { class: 'ag-sec-bot' }, h('button', { class: 'ag-mini', 'aria-label': 'Nuevo grupo de listas', dataset: { tip: 'Nuevo grupo' }, onclick: nuevoGrupo }, ico('carpetamas')), h('button', { class: 'ag-mini', 'aria-label': 'Nueva lista', onclick: nuevaLista }, ico('mas')))),
         listasOrdenadas().filter(l => !grupoDe(l)).map(l => item('lista', l.nombre, null, cu.listas[l.id] || 0, { id: l.id, color: l.color, icono: l.icono })),
-        gruposOrdenados().map(g => grupoUI(g, cu, item)),
-        ui.nuevaLista && h('input', { type: 'text', class: 'ag-input chico', placeholder: 'Nombre de la lista', maxLength: 40, id: 'agNuevaLista',
-          onkeydown: e => { e.stopPropagation(); if (e.key === 'Escape') { ui.nuevaLista = false; lado(); } if (e.key === 'Enter') e.target.blur(); },
-          onblur: e => { const n = e.target.value.trim(); ui.nuevaLista = false;
-            if (n) { const l = { id: 'l' + Date.now().toString(36), nombre: n, color: COLORES[E.listas.length % COLORES.length], icono: '', orden: Math.max(0, ...E.listas.map(x => x.orden || 0)) + 1, t: Date.now() }; E.listas.push(l); guardar(); ui.vista = { tipo: 'lista', id: l.id }; ui.personalizar = true; todo(); } else lado(); } })),
+        gruposOrdenados().map(g => grupoUI(g, cu, item))),
       Object.keys(cu.etiquetas).length > 0 && h('div', { class: 'ag-seccion' }, h('div', { class: 'ag-sec-tit' }, 'Etiquetas'),
         Object.keys(cu.etiquetas).sort().map(x => item('etiqueta', '#' + x, null, cu.etiquetas[x], { nombre: x, color: 'transparent' }))),
       nubeUI()].filter(Boolean));
-    if (ui.nuevaLista) setTimeout(() => { const i = document.getElementById('agNuevaLista'); if (i) i.focus(); }, 0);
   }
   /** Un grupo de listas: carpeta que se pliega; mantenida pulsada abre su menú o se arrastra para cambiar su lugar. */
   function grupoUI(g, cu, item) {
@@ -997,7 +991,7 @@
       return h('div', { class: 'ag-carp' }, h('div', { class: 'ag-grupo-ren' }, ico('carpeta'), inp));
     }
     const cabecera = cab = h('button', { class: 'ag-nav ag-grupo-cab', dataset: { gid: g.id }, 'aria-expanded': String(!cerrado),
-      onpointerdown: e => { largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
+      onpointerdown: e => { if (e.pointerType === 'mouse' && e.button !== 0) return; largo = false; alzada = false; movio = false; destino = null; pid = e.pointerId; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
         tm = setTimeout(() => { largo = alzada = true; cerrarMenuCtx(); cab.classList.add('arrastrando'); try { cab.setPointerCapture(pid); } catch { /* sin captura */ }
           if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* sin vibración */ } } }, 450); },
       onpointermove: e => {
